@@ -1,0 +1,54 @@
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
+
+def summarize_article(article_text, num_sentences=3):
+    # Tokenize the article into sentences
+    sentences = sent_tokenize(article_text)
+    
+    # Tokenize the article into words
+    words = word_tokenize(article_text)
+    
+    # Remove stopwords
+    stop_words = set(stopwords.words("english"))
+    words = [word for word in words if word.casefold() not in stop_words]
+    
+    # Calculate word frequencies
+    word_frequencies = nltk.FreqDist(words)
+    
+    # Assign scores to sentences based on word frequencies
+    sentence_scores = {}
+    for i, sentence in enumerate(sentences):
+        for word in nltk.word_tokenize(sentence.lower()):
+            if word in word_frequencies:
+                if i not in sentence_scores:
+                    sentence_scores[i] = word_frequencies[word]
+                else:
+                    sentence_scores[i] += word_frequencies[word]
+    
+    # Get top N sentences with highest scores
+    top_sentences = sorted(sentence_scores, key=sentence_scores.get, reverse=True)[:num_sentences]
+    
+    # Generate the summary
+    summary = ""
+    for index in top_sentences:
+        summary += sentences[index] + " "
+    
+    return summary
+
+# Example usage
+article = '''
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed in urna in ligula ullamcorper facilisis. 
+Pellentesque interdum tortor id consectetur porttitor. Donec dictum, sem non pharetra tristique, urna enim 
+auctor tellus, ut cursus leo nunc eget arcu. Proin tempus leo sed mauris lobortis eleifend. Donec a ante 
+ullamcorper, gravida erat eu, pulvinar nisi. Suspendisse potenti. Sed semper felis tellus, sit amet 
+tristique erat efficitur nec. Nulla ultricies purus vitae risus vulputate lacinia. Duis auctor, libero 
+sit amet consectetur dapibus, ligula arcu consectetur turpis, nec commodo nulla odio a ligula. Aliquam 
+auctor nibh in faucibus cursus. Nullam lacinia ante enim, nec ultricies nulla laoreet sed. Mauris eget 
+dignissim urna. Nullam tincidunt metus ut felis tincidunt, at fermentum est interdum. Duis semper purus 
+vel arcu suscipit cursus. Nullam fermentum purus ac cursus vestibulum. Quisque pharetra leo vitae urna 
+hendrerit, nec eleifend odio finibus. 
+'''
+
+summary = summarize_article(article, num_sentences=2)
+print(summary)
