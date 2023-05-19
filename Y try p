@@ -1,35 +1,4 @@
-import os
-from pptx import Presentation
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-# Load GPT-2 model and tokenizer
-model_name = 'gpt2'
-model = GPT2LMHeadModel.from_pretrained(model_name)
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-
-# Extract text from the PowerPoint presentation
-def extract_text_from_ppt(ppt_file):
-    prs = Presentation(ppt_file)
-    text = ""
-    for slide in prs.slides:
-        for shape in slide.shapes:
-            if shape.has_text_frame:
-                for paragraph in shape.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        text += run.text
-    return text
-
-# Generate summary using GPT-2
-def generate_summary(text, summary_length=100):
-    inputs = tokenizer.encode(text, return_tensors='pt', max_length=512, truncation=True)
-    summary_ids = model.generate(inputs, max_length=summary_length, num_beams=5, early_stopping=True)
-    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-    return summary
-
-# Specify the PowerPoint file, extract text, and generate the summary
-ppt_file = 'your_presentation.pptx'  # Specify the path to your PowerPoint file
-extracted_text = extract_text_from_ppt(ppt_file)
-summary = generate_summary(extracted_text)
-
-print("Summary:")
-print(summary)
+from transformers import pipeline
+my_model = pipeline('text-generation', model = 'EleutherAI/gpt-neo-2.7B')
+blog_post = my_model('hard work always pays off', max_length = 100, do_sample = True, temperature = 0.9)
+print (blog_post)
