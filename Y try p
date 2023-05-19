@@ -1,20 +1,35 @@
-gpt2.download_gpt2(model_name='124M')
-sess = gpt2.start_tf_sess()
-gpt2.load_gpt2(sess)
-
 import os
 from pptx import Presentation
-import gpt_2_simple as gpt2
-from nltk.tokenize import sent_tokenize
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
+# Load GPT-2 model and tokenizer
+model_name = 'gpt2'
+model = GPT2LMHeadModel.from_pretrained(model_name)
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+
+# Extract text from the PowerPoint presentation
+def extract_text_from_ppt(ppt_file):
+    prs = Presentation(ppt_file)
+    text = ""
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        text += run.text
+    return text
+
+# Generate summary using GPT-2
 def generate_summary(text, summary_length=100):
-    # Tokenize the text into sentences
-    sentences = sent_tokenize(text)
-
-    # Concatenate the sentences into a single string
-    input_text = " ".join(sentences)
-
-    # Generate summary using GPT-2
-    summary = gpt2.generate(sess, prefix=input_text, length=summary_length, temperature=0.7, return_as_list=True)[0]
-
+    inputs = tokenizer.encode(text, return_tensors='pt', max_length=512, truncation=True)
+    summary_ids = model.generate(inputs, max_length=summary_length, num_beams=5, early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     return summary
+
+# Specify the PowerPoint file, extract text, and generate the summary
+ppt_file = 'your_presentation.pptx'  # Specify the path to your PowerPoint file
+extracted_text = extract_text_from_ppt(ppt_file)
+summary = generate_summary(extracted_text)
+
+print("Summary:")
+print(summary)
