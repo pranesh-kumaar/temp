@@ -1,4 +1,1 @@
-from transformers import pipeline
-my_model = pipeline('text-generation', model = 'EleutherAI/gpt-neo-2.7B')
-blog_post = my_model('hard work always pays off', max_length = 100, do_sample = True, temperature = 0.9)
-print (blog_post)
+https://www.youtube.com/watch?v=IEURgrxUzFg&t=3s
