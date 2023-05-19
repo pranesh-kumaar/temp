@@ -1,1 +1,20 @@
-https://www.youtube.com/watch?v=IEURgrxUzFg&t=3s
+# Define a function for text summarization
+def generate_summary(text):
+    # Tokenize input text
+    input_ids = tokenizer.encode(text, return_tensors='pt')
+
+    # Generate summary
+    with torch.no_grad():
+        summary_ids = model.generate(input_ids, num_beams=4, max_length=100, no_repeat_ngram_size=2)
+
+    # Decode the generated summary
+    summary = tokenizer.decode(summary_ids.squeeze(), skip_special_tokens=True)
+    return summary
+
+# Example usage
+article_text = "Your article text goes here."
+summary = generate_summary(article_text)
+
+# Print the generated summary
+print("Article Summary:")
+print(summary)
