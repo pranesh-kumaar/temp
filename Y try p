@@ -1,5 +1,5 @@
 # Generate the summary for the concatenated text
-inputs = tokenizer.encode("summarize: " + article_text, truncation=True, padding='longest', max_length=1024, return_tensors='pt')
+inputs = tokenizer.prepare_seq2seq_batch([article_text], truncation=True, padding='longest', max_length=1024, return_tensors='pt')
 
 # Generate the summary
 with torch.no_grad():
