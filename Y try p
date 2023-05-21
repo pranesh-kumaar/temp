@@ -1,9 +1,1 @@
-# Generate the summary for the concatenated text
-inputs = tokenizer.prepare_seq2seq_batch([article_text], truncation=True, padding='longest', max_length=1024, return_tensors='pt')
-
-# Generate the summary
-with torch.no_grad():
-    outputs = model.generate(inputs.input_ids, attention_mask=inputs.attention_mask, max_length=100, num_beams=4, length_penalty=2.0)
-
-# Decode the generated summary
-summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+https://colab.research.google.com/drive/115ba3EFCT0PvyXzFNv9E18QnKiyyjsm5?usp=sharing
