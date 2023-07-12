@@ -6,3 +6,6 @@ ValueError: Exception encountered when calling layer "sequential_8" "           
       • inputs=tf.Tensor(shape=(None, 14, 24), dtype=float32)
       • training=True
       • mask=None
+
+
+model.add(LSTM(32, input_shape=(time_steps, len(features))))
