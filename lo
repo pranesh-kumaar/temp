@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 # load the data from a CSV file
 data = pd.read_csv('technical_data.csv')
@@ -6,5 +7,11 @@ data = pd.read_csv('technical_data.csv')
 # select the columns you want to use as features
 features = ['High', 'Low', 'EMA', 'Stoch', 'RSI']
 
+# number of time steps (days) to use as input
+time_steps = 14
+
 # create the X matrix
-X = data[features].values
+X = []
+for i in range(time_steps, len(data)):
+    X.append(data[features].iloc[i-time_steps:i].values)
+X = np.array(X)
