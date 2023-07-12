@@ -1,17 +1,8 @@
-import pandas as pd
-import numpy as np
-
-# load the data from a CSV file
-data = pd.read_csv('technical_data.csv')
-
-# select the columns you want to use as features
-features = ['High', 'Low', 'EMA', 'Stoch', 'RSI']
-
-# number of time steps (days) to use as input
-time_steps = 14
-
-# create the X matrix
-X = []
-for i in range(time_steps, len(data)):
-    X.append(data[features].iloc[i-time_steps:i].values)
-X = np.array(X)
+ValueError: Exception encountered when calling layer "sequential_8" "                 f"(type Sequential).
+    
+    Input 0 of layer "dense_24" is incompatible with the layer: expected axis -1 of input shape to have value 14, but received input with shape (None, 14, 24)
+    
+    Call arguments received by layer "sequential_8" "                 f"(type Sequential):
+      • inputs=tf.Tensor(shape=(None, 14, 24), dtype=float32)
+      • training=True
+      • mask=None
