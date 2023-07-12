@@ -1,19 +1,10 @@
-# define the dataset
-X = np.array([[...], [...], ...]) # 14 days of technical data for each sample
-y = np.array([...]) # trade signals (1, 0, -1) for each sample
+import pandas as pd
 
-# create the neural network model
-model = Sequential()
-model.add(Dense(32, input_dim=14, activation='relu'))
-model.add(Dense(16, activation='relu'))
-model.add(Dense(1, activation='tanh'))
+# load the data from a CSV file
+data = pd.read_csv('technical_data.csv')
 
-# compile the model
-model.compile(loss='mean_squared_error', optimizer='adam')
+# select the columns you want to use as features
+features = ['High', 'Low', 'EMA', 'Stoch', 'RSI']
 
-# fit the model to the data
-model.fit(X, y, epochs=100, batch_size=10)
-
-# make predictions
-predictions = model.predict(X)
-trade_signals = np.round(predictions).astype(int)
+# create the X matrix
+X = data[features].values
