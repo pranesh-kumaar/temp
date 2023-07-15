@@ -28,7 +28,7 @@ def create_population():
 def evaluate_population(population, train_data):
     fitness_scores = []
     for strategy in population:
-        returns = backtest_strategy(strategy, train_data)
+        returns = backtest_strategy(strategy, train_data, best_model_config, best_model_weights)
         fitness_scores.append(returns)
     return fitness_scores
 
