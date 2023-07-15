@@ -27,7 +27,7 @@ def create_population():
 def evaluate_population(population):
     fitness_scores = []
     for strategy in population:
-        returns = backtest_strategy(strategy)
+        returns, _ = backtest_strategy(strategy)
         fitness_scores.append(returns)
     return fitness_scores
 
@@ -91,9 +91,8 @@ def backtest_strategy(strategy):
     bt = Backtest(data, MyStrategy)
     result = bt.run()
     returns = result[6]
-    bt.plot()
 
-    return returns
+    return returns, bt
 
 # Main genetic algorithm loop
 def genetic_algorithm():
@@ -113,4 +112,8 @@ def genetic_algorithm():
 
 # Run the genetic algorithm
 best_strategy = genetic_algorithm()
-print("Best strategy:", best_strategy)
+_, best_bt = backtest_strategy(best_strategy)
+
+# Output in bt.plot() and bt.run()
+best_bt.plot()
+best_bt.run()
