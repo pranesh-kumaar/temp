@@ -12,7 +12,7 @@ mutation_rate = 0.01
 num_generations = 50
 
 # Neural Network parameters
-input_shape = (14, 22)  # Excluding Open, High, Low, Close
+input_shape = (14, 25)  # Excluding Open, High, Low, Close
 output_size = 1
 learning_rate = 0.001
 
@@ -122,7 +122,6 @@ def genetic_algorithm(train_data):
     genetic_algorithm.best_model_weights = best_model_weights
 
 # Load and preprocess your data here
-df = ...
 df_train, df_test = train_test_split(df, test_size=0.2, shuffle=False)
 
 train_data = df_train.drop(['Open', 'High', 'Low', 'Close'], axis=1)  # Exclude Open, High, Low, Close
