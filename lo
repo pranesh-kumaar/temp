@@ -12,7 +12,7 @@ num_generations = 50
 
 # Neural Network parameters
 input_shape = (14, 25)
-output_size = 3
+output_size = 1
 learning_rate = 0.001
 
 # Function to create an initial population
@@ -78,10 +78,10 @@ def backtest_strategy(strategy):
             global index
             index = []
             current_signal = self.data.Signal[-1]
-            if current_signal == 1:
+            if current_signal > 0.5:
                 if not self.position:
                     self.buy()
-            elif current_signal == -1:
+            elif current_signal < -0.5:
                 if self.position:
                     self.position.close()
 
