@@ -70,11 +70,12 @@ def generate_next_generation(parents):
     return next_generation
 
 # Function to backtest a strategy and calculate returns
-def backtest_strategy(strategy, train_data):
+def backtest_strategy(strategy, train_data, best_model_config, best_model_weights):
     class MyStrategy(Strategy):
-        def init(self):
-            self.model = Sequential.from_config(genetic_algorithm.best_model_config)
-            self.model.set_weights(genetic_algorithm.best_model_weights)
+        def __init__(self):
+            self.model = Sequential.from_config(best_model_config)
+            self.model.set_weights(best_model_weights)
+            super().__init__()
 
         def next(self):
             global index
@@ -118,8 +119,7 @@ def genetic_algorithm(train_data):
         population = generate_next_generation(parents)
 
     # Store the best model configuration and weights
-    genetic_algorithm.best_model_config = best_model_config
-    genetic_algorithm.best_model_weights = best_model_weights
+    return best_model_config, best_model_weights
 
 # Load and preprocess your data here
 df_train, df_test = train_test_split(df, test_size=0.2, shuffle=False)
@@ -128,19 +128,20 @@ train_data = df_train.drop(['Open', 'High', 'Low', 'Close'], axis=1)  # Exclude 
 test_data = df_test.copy()
 
 # Run the genetic algorithm to find the best model
-genetic_algorithm(train_data)
+best_model_config, best_model_weights = genetic_algorithm(train_data)
 
 # Backtest the best model on the test data
-returns = backtest_strategy(genetic_algorithm.best_model_config, train_data)
+returns = backtest_strategy(best_model_config, train_data, best_model_config, best_model_weights)
 
 # Print the best strategy's returns
 print("Best strategy returns:", returns)
 
 # Plot and run backtest with the best model on the test data
 class MyStrategy(Strategy):
-    def init(self):
-        self.model = Sequential.from_config(genetic_algorithm.best_model_config)
-        self.model.set_weights(genetic_algorithm.best_model_weights)
+    def __init__(self):
+        self.model = Sequential.from_config(best_model_config)
+        self.model.set_weights(best_model_weights)
+        super().__init__()
 
     def next(self):
         global index
