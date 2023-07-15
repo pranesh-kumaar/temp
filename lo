@@ -90,9 +90,7 @@ def backtest_strategy(strategy):
 
     bt = Backtest(data, MyStrategy)
     result = bt.run()
-    returns = result[6]
-
-    return returns
+    return result
 
 # Main genetic algorithm loop
 def genetic_algorithm():
@@ -112,4 +110,12 @@ def genetic_algorithm():
 
 # Run the genetic algorithm
 best_strategy = genetic_algorithm()
-print("Best strategy:", best_strategy)
+
+# Backtest the best strategy and plot the results
+strategy = np.array(best_strategy).reshape(input_shape + (output_size,))
+data = signals
+
+bt = Backtest(data, MyStrategy)
+result = bt.run()
+bt.plot()
+
