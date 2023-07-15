@@ -25,10 +25,10 @@ def create_population():
     return population
 
 # Function to evaluate the fitness of each individual in the population
-def evaluate_population(population, train_data):
+def evaluate_population(population, train_data, best_model_config, best_model_weights):
     fitness_scores = []
     for strategy in population:
-        returns = backtest_strategy(strategy, train_data)
+        returns = backtest_strategy(strategy, train_data, best_model_config, best_model_weights)
         fitness_scores.append(returns)
     return fitness_scores
 
@@ -107,7 +107,7 @@ def genetic_algorithm(train_data):
 
     for generation in range(num_generations):
         print(f"Generation {generation + 1}/{num_generations}")
-        fitness_scores = evaluate_population(population, train_data)
+        fitness_scores = evaluate_population(population, train_data, best_model_config, best_model_weights)
 
         if max(fitness_scores) > best_fitness:
             best_fitness = max(fitness_scores)
@@ -138,7 +138,7 @@ print("Best strategy returns:", returns)
 
 # Plot and run backtest with the best model on the test data
 class MyStrategy(Strategy):
-    def __init__(self, best_model_config, best_model_weights):
+    def __init__(self):
         self.model = Sequential.from_config(best_model_config)
         self.model.set_weights(best_model_weights)
         super().__init__()
@@ -157,6 +157,6 @@ class MyStrategy(Strategy):
 data = test_data.copy()
 data['Signal'] = 0  # Placeholder for signals
 
-bt = Backtest(data, MyStrategy, best_model_config, best_model_weights)
+bt = Backtest(data, MyStrategy)
 bt.plot()
 bt.run()
