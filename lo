@@ -78,18 +78,25 @@ def normalize_fitness(fitness_scores):
 def backtest_strategy(strategy):
     class MyStrategy(Strategy):
         def init(self):
-            self.signal = None
+            pass
 
         def next(self):
-            signal = np.argmax(self.data.close)
-            self.signal = signal
+            global index
+            index = []
+            current_signal = self.data.Signal[-1]
+            if current_signal == 1:
+                if not self.position:
+                    self.buy()
+            elif current_signal == -1:
+                if self.position:
+                    self.position.close()
 
     strategy = np.array(strategy).reshape(input_shape + (output_size,))
-    data = ...  # Load your stock price data here
+    data = signals
 
     bt = Backtest(data, MyStrategy)
     result = bt.run()
-    returns = result["returns"].iloc[-1]
+    returns = result[6]
 
     return returns
 
