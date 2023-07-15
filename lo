@@ -2,7 +2,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
-from sklearn.preprocessing import MinMaxScaler
+from backtesting import Backtest, Strategy
 
 # Genetic Algorithm parameters
 population_size = 50
@@ -10,22 +10,15 @@ mutation_rate = 0.01
 num_generations = 50
 
 # Neural Network parameters
-input_size = 10
-hidden_size = 8
-output_size = 1
+input_shape = (14, 25)
+output_size = 3
 learning_rate = 0.001
-
-# Function to calculate returns based on a given strategy
-def calculate_returns(strategy):
-    # Your return calculation logic here
-    returns = 0.0
-    return returns
 
 # Function to create an initial population
 def create_population():
     population = []
     for _ in range(population_size):
-        strategy = np.random.uniform(-1, 1, size=(input_size, hidden_size, output_size))
+        strategy = np.random.uniform(-1, 1, size=(np.prod(input_shape), output_size))
         population.append(strategy)
     return population
 
@@ -33,29 +26,27 @@ def create_population():
 def evaluate_population(population):
     fitness_scores = []
     for strategy in population:
-        returns = calculate_returns(strategy)
+        returns = backtest_strategy(strategy)
         fitness_scores.append(returns)
     return fitness_scores
 
 # Function to perform crossover between two parent strategies
 def crossover(parent1, parent2):
     child = np.zeros_like(parent1)
-    for i in range(input_size):
-        for j in range(hidden_size):
-            for k in range(output_size):
-                if np.random.rand() < 0.5:
-                    child[i, j, k] = parent1[i, j, k]
-                else:
-                    child[i, j, k] = parent2[i, j, k]
+    for i in range(parent1.shape[0]):
+        for j in range(parent1.shape[1]):
+            if np.random.rand() < 0.5:
+                child[i, j] = parent1[i, j]
+            else:
+                child[i, j] = parent2[i, j]
     return child
 
 # Function to perform mutation on an individual strategy
 def mutate(strategy):
-    for i in range(input_size):
-        for j in range(hidden_size):
-            for k in range(output_size):
-                if np.random.rand() < mutation_rate:
-                    strategy[i, j, k] += np.random.uniform(-0.1, 0.1)
+    for i in range(strategy.shape[0]):
+        for j in range(strategy.shape[1]):
+            if np.random.rand() < mutation_rate:
+                strategy[i, j] += np.random.uniform(-0.1, 0.1)
     return strategy
 
 # Function to select the best individuals from the population as parents for the next generation
@@ -76,11 +67,31 @@ def generate_next_generation(parents):
         next_generation.append(child)
     return next_generation
 
-# Normalize the fitness scores
+# Manually normalize the fitness scores
 def normalize_fitness(fitness_scores):
-    scaler = MinMaxScaler()
-    normalized_scores = scaler.fit_transform(np.array(fitness_scores).reshape(-1, 1))
-    return normalized_scores.flatten()
+    min_score = min(fitness_scores)
+    max_score = max(fitness_scores)
+    normalized_scores = [(score - min_score) / (max_score - min_score) for score in fitness_scores]
+    return normalized_scores
+
+# Function to backtest a strategy and calculate returns
+def backtest_strategy(strategy):
+    class MyStrategy(Strategy):
+        def init(self):
+            self.signal = None
+
+        def next(self):
+            signal = np.argmax(self.data.close)
+            self.signal = signal
+
+    strategy = np.array(strategy).reshape(input_shape + (output_size,))
+    data = ...  # Load your stock price data here
+
+    bt = Backtest(data, MyStrategy)
+    result = bt.run()
+    returns = result["returns"].iloc[-1]
+
+    return returns
 
 # Main genetic algorithm loop
 def genetic_algorithm():
