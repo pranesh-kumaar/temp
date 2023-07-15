@@ -73,7 +73,8 @@ def generate_next_generation(parents):
 def backtest_strategy(strategy, train_data):
     class MyStrategy(Strategy):
         def init(self):
-            pass
+            self.model = Sequential.from_config(genetic_algorithm.best_model_config)
+            self.model.set_weights(genetic_algorithm.best_model_weights)
 
         def next(self):
             global index
@@ -139,7 +140,8 @@ print("Best strategy returns:", returns)
 # Plot and run backtest with the best model on the test data
 class MyStrategy(Strategy):
     def init(self):
-        pass
+        self.model = Sequential.from_config(genetic_algorithm.best_model_config)
+        self.model.set_weights(genetic_algorithm.best_model_weights)
 
     def next(self):
         global index
@@ -156,9 +158,5 @@ data = test_data.copy()
 data['Signal'] = 0  # Placeholder for signals
 
 bt = Backtest(data, MyStrategy)
-bt.model = Sequential.from_config(genetic_algorithm.best_model_config)
-bt.model.set_weights(genetic_algorithm.best_model_weights)
-
-# Plot and run the backtest
 bt.plot()
 bt.run()
