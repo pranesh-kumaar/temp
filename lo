@@ -1,22 +1,104 @@
-from keras.utils import to_categorical
+import numpy as np
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.optimizers import Adam
+from sklearn.preprocessing import MinMaxScaler
 
-# convert trade signals into one-hot encoded vectors
-y = to_categorical(y + 1)
+# Genetic Algorithm parameters
+population_size = 50
+mutation_rate = 0.01
+num_generations = 50
 
-# create the neural network model
-model = Sequential()
-model.add(Conv1D(32, 3, activation='relu', input_shape=(time_steps, len(features))))
-model.add(MaxPooling1D())
-model.add(Flatten())
-model.add(Dense(16, activation='relu'))
-model.add(Dense(3, activation='softmax'))
+# Neural Network parameters
+input_size = 10
+hidden_size = 8
+output_size = 1
+learning_rate = 0.001
 
-# compile the model
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# Function to calculate returns based on a given strategy
+def calculate_returns(strategy):
+    # Your return calculation logic here
+    returns = 0.0
+    return returns
 
-# fit the model to the data
-model.fit(X, y, epochs=100, batch_size=10)
+# Function to create an initial population
+def create_population():
+    population = []
+    for _ in range(population_size):
+        strategy = np.random.uniform(-1, 1, size=(input_size, hidden_size, output_size))
+        population.append(strategy)
+    return population
 
-# make predictions
-predictions = model.predict(X)
-trade_signals = np.argmax(predictions, axis=1) - 1
+# Function to evaluate the fitness of each individual in the population
+def evaluate_population(population):
+    fitness_scores = []
+    for strategy in population:
+        returns = calculate_returns(strategy)
+        fitness_scores.append(returns)
+    return fitness_scores
+
+# Function to perform crossover between two parent strategies
+def crossover(parent1, parent2):
+    child = np.zeros_like(parent1)
+    for i in range(input_size):
+        for j in range(hidden_size):
+            for k in range(output_size):
+                if np.random.rand() < 0.5:
+                    child[i, j, k] = parent1[i, j, k]
+                else:
+                    child[i, j, k] = parent2[i, j, k]
+    return child
+
+# Function to perform mutation on an individual strategy
+def mutate(strategy):
+    for i in range(input_size):
+        for j in range(hidden_size):
+            for k in range(output_size):
+                if np.random.rand() < mutation_rate:
+                    strategy[i, j, k] += np.random.uniform(-0.1, 0.1)
+    return strategy
+
+# Function to select the best individuals from the population as parents for the next generation
+def select_parents(population, fitness_scores):
+    sorted_indices = np.argsort(fitness_scores)
+    selected_indices = sorted_indices[-int(population_size / 2):]
+    parents = [population[i] for i in selected_indices]
+    return parents
+
+# Function to generate the next generation
+def generate_next_generation(parents):
+    next_generation = []
+    while len(next_generation) < population_size:
+        parent1 = np.random.choice(parents)
+        parent2 = np.random.choice(parents)
+        child = crossover(parent1, parent2)
+        child = mutate(child)
+        next_generation.append(child)
+    return next_generation
+
+# Normalize the fitness scores
+def normalize_fitness(fitness_scores):
+    scaler = MinMaxScaler()
+    normalized_scores = scaler.fit_transform(np.array(fitness_scores).reshape(-1, 1))
+    return normalized_scores.flatten()
+
+# Main genetic algorithm loop
+def genetic_algorithm():
+    population = create_population()
+    for generation in range(num_generations):
+        print(f"Generation {generation + 1}/{num_generations}")
+        fitness_scores = evaluate_population(population)
+        normalized_fitness = normalize_fitness(fitness_scores)
+
+        parents = select_parents(population, normalized_fitness)
+        population = generate_next_generation(parents)
+
+    # Evaluate the final population and return the best strategy
+    fitness_scores = evaluate_population(population)
+    best_strategy_index = np.argmax(fitness_scores)
+    best_strategy = population[best_strategy_index]
+    return best_strategy
+
+# Run the genetic algorithm
+best_strategy = genetic_algorithm()
+print("Best strategy:", best_strategy)
