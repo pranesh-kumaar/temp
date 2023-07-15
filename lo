@@ -53,7 +53,7 @@ def mutate(strategy):
 # Function to select the best individuals from the population as parents for the next generation
 def select_parents(population, fitness_scores):
     sorted_indices = np.argsort(fitness_scores)
-    selected_indices = sorted_indices[:-(int(population_size / 2) + 1):-1]
+    selected_indices = sorted_indices[-int(population_size / 2):]
     parents = [population[i] for i in selected_indices]
     return parents
 
@@ -90,7 +90,10 @@ def backtest_strategy(strategy):
 
     bt = Backtest(data, MyStrategy)
     result = bt.run()
-    return result
+    returns = result[6]
+    bt.plot()
+
+    return returns
 
 # Main genetic algorithm loop
 def genetic_algorithm():
@@ -110,11 +113,4 @@ def genetic_algorithm():
 
 # Run the genetic algorithm
 best_strategy = genetic_algorithm()
-
-# Backtest the best strategy and plot the results
-strategy = np.array(best_strategy).reshape(input_shape + (output_size,))
-data = signals
-
-bt = Backtest(data, MyStrategy)
-result = bt.run()
-bt.plot()
+print("Best strategy:", best_strategy)
