@@ -91,8 +91,8 @@ def backtest_strategy(strategy, train_data):
     data['Signal'] = 0  # Placeholder for signals
 
     bt = Backtest(data, MyStrategy)
-    bt.model = Sequential.from_config(genetic_algorithm.best_model_config)
-    bt.model.set_weights(genetic_algorithm.best_model_weights)
+    bt.model = Sequential.from_config(genetic_algorithm.best_model_config())
+    bt.model.set_weights(genetic_algorithm.best_model_weights())
     result = bt.run()
     returns = result[6]
 
@@ -105,6 +105,12 @@ def genetic_algorithm(train_data):
     best_model_weights = None
     best_fitness = float('-inf')
 
+    def store_best_model_config():
+        return best_model_config
+
+    def store_best_model_weights():
+        return best_model_weights
+
     for generation in range(num_generations):
         print(f"Generation {generation + 1}/{num_generations}")
         fitness_scores = evaluate_population(population, train_data)
@@ -115,12 +121,9 @@ def genetic_algorithm(train_data):
             best_model_config = population[best_strategy_index]
             best_model_weights = model.get_weights()
 
-        parents = select_parents(population, fitness_scores)
-        population = generate_next_generation(parents)
-
     # Store the best model configuration and weights
-    genetic_algorithm.best_model_config = best_model_config
-    genetic_algorithm.best_model_weights = best_model_weights
+    genetic_algorithm.best_model_config = store_best_model_config
+    genetic_algorithm.best_model_weights = store_best_model_weights
 
 # Load and preprocess your data here
 df = ...
@@ -133,7 +136,7 @@ test_data = df_test.copy()
 genetic_algorithm(train_data)
 
 # Backtest the best model on the test data
-returns = backtest_strategy(genetic_algorithm.best_model_config, train_data)
+returns = backtest_strategy(genetic_algorithm.best_model_config(), train_data)
 
 # Print the best strategy's returns
 print("Best strategy returns:", returns)
@@ -158,8 +161,8 @@ data = test_data.copy()
 data['Signal'] = 0  # Placeholder for signals
 
 bt = Backtest(data, MyStrategy)
-bt.model = Sequential.from_config(genetic_algorithm.best_model_config)
-bt.model.set_weights(genetic_algorithm.best_model_weights)
+bt.model = Sequential.from_config(genetic_algorithm.best_model_config())
+bt.model.set_weights(genetic_algorithm.best_model_weights())
 
 # Plot and run the backtest
 bt.plot()
