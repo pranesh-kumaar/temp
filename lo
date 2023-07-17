@@ -1,162 +1,79 @@
-import random
+import tensorflow as tf
 import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
-from backtesting import Backtest, Strategy
 
-# Genetic Algorithm parameters
-population_size = 50
-mutation_rate = 0.01
-num_generations = 50
+# Constants
+NUM_DAYS = 14
+NUM_FEATURES = 22
+NUM_CLASSES = 3
+NUM_UNITS = 64
+BATCH_SIZE = 64
+NUM_EPOCHS = 20
 
-# Neural Network parameters
-input_shape = (14, 25)  # Excluding Open, High, Low, Close
-output_size = 1
-learning_rate = 0.001
+# Prepare the data
+X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
-# Function to create an initial population
-def create_population():
-    population = []
-    for _ in range(population_size):
-        strategy = np.random.uniform(-1, 1, size=(np.prod(input_shape), output_size))
-        population.append(strategy)
-    return population
+# Create the LTCCell
+ltc_cell = LTCCell(num_units=NUM_UNITS)
 
-# Function to evaluate the fitness of each individual in the population
-def evaluate_population(population, train_data, best_model_config, best_model_weights):
-    fitness_scores = []
-    for strategy in population:
-        returns = backtest_strategy(strategy, train_data, best_model_config, best_model_weights)
-        fitness_scores.append(returns)
-    return fitness_scores
+# Placeholder for input and target
+input_placeholder = tf.placeholder(shape=[None, NUM_DAYS, NUM_FEATURES], dtype=tf.float32)
+target_placeholder = tf.placeholder(shape=[None], dtype=tf.int32)
 
-# Function to perform crossover between two parent strategies
-def crossover(parent1, parent2):
-    child = np.zeros_like(parent1)
-    for i in range(parent1.shape[0]):
-        for j in range(parent1.shape[1]):
-            if np.random.rand() < 0.5:
-                child[i, j] = parent1[i, j]
-            else:
-                child[i, j] = parent2[i, j]
-    return child
+# Map inputs using the LTCCell
+inputs_mapped = ltc_cell._map_inputs(input_placeholder)
 
-# Function to perform mutation on an individual strategy
-def mutate(strategy):
-    for i in range(strategy.shape[0]):
-        for j in range(strategy.shape[1]):
-            if np.random.rand() < mutation_rate:
-                strategy[i, j] += np.random.uniform(-0.1, 0.1)
-    return strategy
+# Unstack the inputs to feed into the LSTM cell
+inputs_unstacked = tf.unstack(inputs_mapped, axis=1)
 
-# Function to select the best individuals from the population as parents for the next generation
-def select_parents(population, fitness_scores):
-    sorted_indices = np.argsort(fitness_scores)
-    selected_indices = sorted_indices[-int(population_size / 2):]
-    parents = [population[i] for i in selected_indices]
-    return parents
+# LSTM cell implementation
+outputs, _ = tf.nn.static_rnn(ltc_cell, inputs_unstacked, dtype=tf.float32)
 
-# Function to generate the next generation
-def generate_next_generation(parents):
-    next_generation = []
-    while len(next_generation) < population_size:
-        parent1 = random.sample(parents, 1)[0]
-        parent2 = random.sample(parents, 1)[0]
-        child = crossover(parent1, parent2)
-        child = mutate(child)
-        next_generation.append(child)
-    return next_generation
+# Flatten the LSTM outputs for classification
+final_output = tf.layers.dense(outputs[-1], NUM_CLASSES)
 
-# Function to backtest a strategy and calculate returns
-def backtest_strategy(strategy, train_data, best_model_config, best_model_weights):
-    class MyStrategy(Strategy):
-        def __init__(self):
-            self.model = Sequential.from_config(best_model_config)
-            self.model.set_weights(best_model_weights)
-            super().__init__()
+# Define the loss and optimizer
+loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=target_placeholder, logits=final_output))
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
 
-        def next(self):
-            global index
-            index = []
-            current_signal = self.model.predict(self.data)[-1]
-            if current_signal > 0.5:
-                if not self.position:
-                    self.buy()
-            elif current_signal < -0.5:
-                if self.position:
-                    self.position.close()
+# Accuracy metric
+predictions = tf.argmax(final_output, axis=1)
+accuracy = tf.reduce_mean(tf.cast(tf.equal(predictions, target_placeholder), tf.float32))
 
-    strategy = np.array(strategy).reshape(input_shape + (output_size,))
-    data = test_data.copy()
-    data['Signal'] = 0  # Placeholder for signals
+# Training loop
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
 
-    bt = Backtest(data, MyStrategy)
-    result = bt.run()
-    returns = result[6]
+    num_batches = X_train.shape[0] // BATCH_SIZE
+    for epoch in range(NUM_EPOCHS):
+        total_loss = 0
+        for batch in range(num_batches):
+            batch_indices = np.random.choice(X_train.shape[0], BATCH_SIZE)
+            X_batch = X_train[batch_indices]
+            y_batch = y_train[batch_indices]
 
-    return returns
+            _, batch_loss = sess.run([optimizer, loss], feed_dict={input_placeholder: X_batch, target_placeholder: y_batch})
+            total_loss += batch_loss
 
-# Main genetic algorithm loop
-def genetic_algorithm(train_data):
-    population = create_population()
-    best_model_config = None
-    best_model_weights = None
-    best_fitness = float('-inf')
+        avg_loss = total_loss / num_batches
+        train_acc = sess.run(accuracy, feed_dict={input_placeholder: X_train, target_placeholder: y_train})
+        test_acc = sess.run(accuracy, feed_dict={input_placeholder: X_test, target_placeholder: y_test})
+        print(f"Epoch {epoch + 1}/{NUM_EPOCHS}, Loss: {avg_loss:.4f}, Train Accuracy: {train_acc:.4f}, Test Accuracy: {test_acc:.4f}")
 
-    for generation in range(num_generations):
-        print(f"Generation {generation + 1}/{num_generations}")
-        fitness_scores = evaluate_population(population, train_data, best_model_config, best_model_weights)
+    # Save the model if needed
+    saver = tf.train.Saver()
+    saver.save(sess, 'ltc_model')
 
-        if max(fitness_scores) > best_fitness:
-            best_fitness = max(fitness_scores)
-            best_strategy_index = np.argmax(fitness_scores)
-            best_model_config = population[best_strategy_index]
-            best_model_weights = model.get_weights()
+    # Make predictions
+    test_predictions = sess.run(predictions, feed_dict={input_placeholder: X_test})
 
-        parents = select_parents(population, fitness_scores)
-        population = generate_next_generation(parents)
+# Interpret the predictions (1 for buy, 0 for hold, -1 for sell)
+print("Test Predictions:")
+for pred in test_predictions:
+    if pred == 1:
+        print("Buy")
+    elif pred == 0:
+        print("Hold")
+    else:
+        print("Sell")
 
-    # Store the best model configuration and weights
-    return best_model_config, best_model_weights
-
-# Load and preprocess your data here
-df_train, df_test = train_test_split(df, test_size=0.2, shuffle=False)
-
-train_data = df_train.drop(['Open', 'High', 'Low', 'Close'], axis=1)  # Exclude Open, High, Low, Close
-test_data = df_test.copy()
-
-# Run the genetic algorithm to find the best model
-best_model_config, best_model_weights = genetic_algorithm(train_data)
-
-# Backtest the best model on the test data
-returns = backtest_strategy(best_model_config, train_data, best_model_config, best_model_weights)
-
-# Print the best strategy's returns
-print("Best strategy returns:", returns)
-
-# Plot and run backtest with the best model on the test data
-class MyStrategy(Strategy):
-    def __init__(self):
-        self.model = Sequential.from_config(best_model_config)
-        self.model.set_weights(best_model_weights)
-        super().__init__()
-
-    def next(self):
-        global index
-        index = []
-        current_signal = self.model.predict(self.data)[-1]
-        if current_signal > 0.5:
-            if not self.position:
-                self.buy()
-        elif current_signal < -0.5:
-            if self.position:
-                self.position.close()
-
-data = test_data.copy()
-data['Signal'] = 0  # Placeholder for signals
-
-bt = Backtest(data, MyStrategy)
-bt.plot()
-bt.run()
