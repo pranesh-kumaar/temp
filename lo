@@ -1,44 +1,53 @@
 import numpy as np
 import pandas as pd
-from keras.models import Sequential
-from keras.layers import Dense
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 
-# Load your dataset here
-# Replace 'your_data.csv' with the actual file path of your dataset
-df = pd.read_csv('your_data.csv')
+# Load your stock dataset into a pandas DataFrame
+data = pd.read_csv('your_stock_data.csv')
 
-# Extract features (input) and target (output)
-features = df.drop(['Open', 'High', 'Low', 'Close', 'Signal'], axis=1).values
-target = df['Signal'].values
+# Separate features and signals
+features = data.drop(columns=['signals'])
+signals = data['signals']
+
+# Scale the features between 0 and 1
+scaler = MinMaxScaler()
+scaled_features = scaler.fit_transform(features)
+
+# Create sequences with historical features and signals
+sequence_length = 15  # 14 previous days' features + current day's features
+sequences = []
+next_signals = []
+for i in range(len(scaled_features) - sequence_length):
+    sequences.append(scaled_features[i : i + sequence_length])
+    next_signals.append(signals[i + sequence_length])
+
+# Convert sequences and next_signals to numpy arrays
+sequences = np.array(sequences)
+next_signals = np.array(next_signals)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(sequences, next_signals, test_size=0.2, random_state=42)
 
-# Create the neural network model
+# Build the LSTM model
 model = Sequential()
-model.add(Dense(64, activation='relu', input_shape=(X_train.shape[1],)))
-model.add(Dense(32, activation='relu'))
-model.add(Dense(1, activation='tanh'))  # Output layer with 'tanh' activation for -1, 0, 1
+model.add(LSTM(units=64, input_shape=(sequence_length, num_features)))
+model.add(Dense(units=1, activation='linear'))  # Adjust activation based on your needs
 
 # Compile the model
 model.compile(optimizer='adam', loss='mean_squared_error')
 
 # Train the model
-model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.1)
+model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
 
-# Evaluate the model on the test data
+# Evaluate the model on the test set
 loss = model.evaluate(X_test, y_test)
-print(f"Test loss: {loss}")
+print(f'Test Loss: {loss}')
 
-# Predict buy, hold, sell signals on the test data
+# Use the trained model to make predictions
 predictions = model.predict(X_test)
 
-# Round the predictions to get -1, 0, 1 signals
-predicted_signals = np.round(predictions)
-
-# Convert the predicted signals to integers (-1, 0, 1)
-predicted_signals = predicted_signals.astype(int)
-
-# Print the first 10 predicted signals
-print("Predicted signals:", predicted_signals[:10])
+# You can convert the predictions back to buy/sell/hold values based on your desired threshold
+# e.g., buy if prediction > 0.5, sell if prediction < -0.5, hold otherwise
