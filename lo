@@ -1,44 +1,56 @@
 import numpy as np
 import pandas as pd
 from keras.models import Sequential
-from keras.layers import Dense, LSTM
+from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
 
 # Assuming you have a DataFrame called 'dataset' with columns: 'Open', 'High', 'Low', 'Close', 'Volume', 'Macd', 'Stoch', 'Vwap', 'Rsi', and 'Signal'.
-
-# Function to create input sequences with previous 14 days data
-def create_sequences(data, n_days=14):
-    sequences = []
-    for i in range(n_days, len(data)):
-        sequences.append(data[i-n_days:i])
-    return np.array(sequences)
 
 # Separate input features (stock data, technical indicators) and target labels (signals)
 X_stock_tech = dataset[['Open', 'High', 'Low', 'Close', 'Volume', 'Macd', 'Stoch', 'Vwap', 'Rsi']].values
 y_signal = dataset['Signal'].values
 
-# Create sequences for LSTM input
-X_sequence = create_sequences(X_stock_tech)
+# Define the sequence length (number of previous days to consider)
+sequence_length = 14
+
+# Create sequences for the CNN input
+def create_cnn_sequences(data, n_days=sequence_length):
+    sequences = []
+    for i in range(n_days, len(data)):
+        sequences.append(data[i-n_days:i])
+    return np.array(sequences)
+
+X_sequence = create_cnn_sequences(X_stock_tech)
 
 # Separate train and test data (e.g., 80% train, 20% test)
 train_size = int(0.8 * len(X_sequence))
 X_train, X_test = X_sequence[:train_size], X_sequence[train_size:]
 y_train, y_test = y_signal[:train_size], y_signal[train_size:]
 
-# Build the neural network model
+# Reshape the data to fit 1D Convolutional layer
+X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], X_train.shape[2])
+X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], X_test.shape[2])
+
+# Build the neural network model using 1D Convolutional layers
 model = Sequential()
-model.add(LSTM(64, input_shape=(X_train.shape[1], X_train.shape[2])))
-model.add(Dense(1, activation='tanh')) # Using 'tanh' activation for signals between -1 and 1
+model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(sequence_length, X_stock_tech.shape[1])))
+model.add(MaxPooling1D(pool_size=2))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dense(1, activation='sigmoid')) # Using 'sigmoid' activation for values between 0 and 1
 
 # Compile the model
-model.compile(loss='mean_squared_error', optimizer='adam')
+model.compile(loss='binary_crossentropy', optimizer='adam') # Use binary_crossentropy for a binary classification problem
 
 # Train the model
-model.fit(X_train, y_train, epochs=50, batch_size=16, validation_data=(X_test, y_test))
+model.fit(X_train, (y_train + 1) / 2, epochs=50, batch_size=16, validation_data=(X_test, (y_test + 1) / 2))
 
 # Evaluate the model
-loss = model.evaluate(X_test, y_test)
+loss = model.evaluate(X_test, (y_test + 1) / 2)
 print(f"Test loss: {loss}")
 
 # Now, you can use the trained model to predict signals for new data:
-# new_data = ... (prepare the new data with the same structure as X_sequence)
-# predicted_signals = model.predict(new_data)
+# new_data = ... (prepare the new data with the same structure as X_stock_tech)
+# new_data_sequence = create_cnn_sequences(new_data)
+# new_data_reshaped = new_data_sequence.reshape(new_data_sequence.shape[0], new_data_sequence.shape[1], new_data_sequence.shape[2])
+# predicted_probabilities = model.predict(new_data_reshaped)
+# predicted_signals = (predicted_probabilities >= 0.5).astype(int) * 2 - 1
