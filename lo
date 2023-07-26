@@ -5,6 +5,15 @@ from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
 
 # Assuming your dataset is loaded and stored in X_train and y_train
 # X_train should be a 3D array with shape (number of samples, 14, 26)
+data = df.drop(['Open', 'Close', 'High', 'Low'], axis = 1)
+X_train=[]
+i = 0
+for x in range(0,len(data)-14):
+    y = data.iloc[i+14:i+14+14]
+    X_train.append(y.values)
+
+X_train = np.array(X_train)
+y_train = df['Signal'].iloc[14:].values
 # y_train should be a 1D array with shape (number of samples,)
 
 # Build the CNN model
