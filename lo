@@ -11,10 +11,16 @@ i = 0
 for x in range(0,len(data)-14):
     y = data.iloc[i+14:i+14+14]
     X_train.append(y.values)
+    i = i+1
 
 X_train = np.array(X_train)
-y_train = df['Signal'].iloc[14:].values
-# y_train should be a 1D array with shape (number of samples,)
+
+dfy = df['Signal'].iloc[14:].values
+y_train = []
+for x in dfy:
+    y_train.append(x+1)
+    
+y_train = np.array(y_train)
 
 # Build the CNN model
 model = Sequential()
