@@ -1,56 +1,54 @@
 import numpy as np
 import pandas as pd
-from keras.models import Sequential
-from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
+from sklearn.preprocessing import StandardScaler
+from tensorflow import keras
+from tensorflow.keras import layers
 
-# Assuming you have a DataFrame called 'dataset' with columns: 'Open', 'High', 'Low', 'Close', 'Volume', 'Macd', 'Stoch', 'Vwap', 'Rsi', and 'Signal'.
+# Load your dataset here
+# Assuming you have 'data.csv' with columns ['feature1', 'feature2', ..., 'feature22', 'signal']
 
-# Separate input features (stock data, technical indicators) and target labels (signals)
-X_stock_tech = dataset[['Open', 'High', 'Low', 'Close', 'Volume', 'Macd', 'Stoch', 'Vwap', 'Rsi']].values
-y_signal = dataset['Signal'].values
+# Load data and split into features and labels
+data = pd.read_csv('data.csv')
+features = data.iloc[:, :22].values
+labels = data['signal'].values
 
-# Define the sequence length (number of previous days to consider)
-sequence_length = 14
+# Normalize the features
+scaler = StandardScaler()
+features = scaler.fit_transform(features)
 
-# Create sequences for the CNN input
-def create_cnn_sequences(data, n_days=sequence_length):
-    sequences = []
-    for i in range(n_days, len(data)):
-        sequences.append(data[i-n_days:i])
-    return np.array(sequences)
+# Prepare input data with 14 days previous data
+window_size = 14
+X = []
+y = []
 
-X_sequence = create_cnn_sequences(X_stock_tech)
+for i in range(window_size, len(features)):
+    X.append(features[i-window_size:i])
+    y.append(labels[i])
 
-# Separate train and test data (e.g., 80% train, 20% test)
-train_size = int(0.8 * len(X_sequence))
-X_train, X_test = X_sequence[:train_size], X_sequence[train_size:]
-y_train, y_test = y_signal[:train_size], y_signal[train_size:]
+X = np.array(X)
+y = np.array(y)
 
-# Reshape the data to fit 1D Convolutional layer
-X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], X_train.shape[2])
-X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], X_test.shape[2])
-
-# Build the neural network model using 1D Convolutional layers
-model = Sequential()
-model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(sequence_length, X_stock_tech.shape[1])))
-model.add(MaxPooling1D(pool_size=2))
-model.add(Flatten())
-model.add(Dense(64, activation='relu'))
-model.add(Dense(1, activation='sigmoid')) # Using 'sigmoid' activation for values between 0 and 1
+# Build the neural network model
+model = keras.Sequential([
+    layers.Dense(64, activation='relu', input_shape=(window_size, 22)),
+    layers.Dense(32, activation='relu'),
+    layers.Dense(1, activation='tanh') # tanh activation to output values in the range [-1, 1]
+])
 
 # Compile the model
-model.compile(loss='binary_crossentropy', optimizer='adam') # Use binary_crossentropy for a binary classification problem
+model.compile(optimizer='adam', loss='mse')
 
 # Train the model
-model.fit(X_train, (y_train + 1) / 2, epochs=50, batch_size=16, validation_data=(X_test, (y_test + 1) / 2))
+model.fit(X, y, epochs=100, batch_size=32, verbose=0)
 
-# Evaluate the model
-loss = model.evaluate(X_test, (y_test + 1) / 2)
-print(f"Test loss: {loss}")
+# Now, you can use the trained model to predict trade signals
+# To get predictions for a new dataset 'new_data', you can preprocess it and then use:
+# new_features = new_data.iloc[:, :22].values
+# new_features = scaler.transform(new_features)
+# X_new = []
+# for i in range(window_size, len(new_features)):
+#     X_new.append(new_features[i-window_size:i])
+# X_new = np.array(X_new)
+# predictions = model.predict(X_new)
 
-# Now, you can use the trained model to predict signals for new data:
-# new_data = ... (prepare the new data with the same structure as X_stock_tech)
-# new_data_sequence = create_cnn_sequences(new_data)
-# new_data_reshaped = new_data_sequence.reshape(new_data_sequence.shape[0], new_data_sequence.shape[1], new_data_sequence.shape[2])
-# predicted_probabilities = model.predict(new_data_reshaped)
-# predicted_signals = (predicted_probabilities >= 0.5).astype(int) * 2 - 1
+# 'predictions' will contain the predicted signals for the new data.
