@@ -1,99 +1,79 @@
-import neat
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Layer
 
-class LTCCell(Layer):
-    def __init__(self, units, **kwargs):
-        self.units = units
-        self.state_size = units
-        super(LTCCell, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-        input_dim = input_shape[-1]
-        self.kernel = self.add_weight(shape=(input_dim, self.units),
-                                      initializer='glorot_uniform',
-                                      name='kernel')
-        self.recurrent_kernel = self.add_weight(
-            shape=(self.units, self.units),
-            initializer='orthogonal',
-            name='recurrent_kernel')
-        self.built = True
-
-    def call(self, inputs, states):
-        prev_output = states[0]
-        h = K.dot(inputs, self.kernel)
-        output = h + K.dot(prev_output, self.recurrent_kernel)
-        return output, [output]
-
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-
-# Assuming your dataset is loaded and stored in X_train and y_train
-# X_train should be a 3D array with shape (number of samples, 14, 26)
-data = df.drop(['Open', 'Close', 'High', 'Low'], axis=1)
-X_train = []
-i = 0
-for x in range(0, len(data) - 14):
-    y = data.iloc[i:i + 14]
-    X_train.append(y.values)
-    i = i + 1
-
-X_train = np.array(X_train)
-
-dfy = df['Signal'].iloc[14:].values
-y_train = []
-for x in dfy:
-    y_train.append(x + 1)
-
-y_train = np.array(y_train)
+# Define the neural network architecture
+def create_model():
+    model = Sequential()
+    model.add(tf.keras.layers.RNN(LTCCell(32), input_shape=(14,26)))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dropout(0.2))
+    model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
+    return model
 
 # Define the fitness function
-def eval_genomes(genomes, config):
-    for genome_id, genome in genomes:
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-        genome.fitness = 0
-        for xi, xo in zip(X_train, y_train):
-            output = net.activate(xi.flatten())
-            genome.fitness -= (output[0] - xo) ** 2
+def evaluate(model, X, y):
+    predictions = model.predict(X)
+    trade_signals = np.argmax(predictions, axis=1) - 1
+    accuracy = np.mean(trade_signals == y)
+    return accuracy
 
-# Load configuration file
-config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                     'config-feedforward')
+# Define the mutation operator
+def mutate(weights, mutation_rate):
+    new_weights = []
+    for w in weights:
+        if np.random.rand() < mutation_rate:
+            w = w + np.random.normal(size=w.shape)
+        new_weights.append(w)
+    return new_weights
 
-# Create the population
-p = neat.Population(config)
+# Define the crossover operator
+def crossover(weights1, weights2):
+    new_weights = []
+    for w1, w2 in zip(weights1, weights2):
+        if np.random.rand() < 0.5:
+            new_weights.append(w1)
+        else:
+            new_weights.append(w2)
+    return new_weights
 
-# Add reporters
-p.add_reporter(neat.StdOutReporter(True))
-stats = neat.StatisticsReporter()
-p.add_reporter(stats)
+# Set the hyperparameters
+population_size = 10
+num_generations = 10
+mutation_rate = 0.1
+
+# Create the initial population
+population = [create_model() for _ in range(population_size)]
 
 # Run the genetic algorithm
-winner = p.run(eval_genomes, 50)
+for generation in range(num_generations):
+    # Evaluate the fitness of each individual
+    fitnesses = [evaluate(model, X_train, y_train) for model in population]
 
-# Create the winning network
-winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
+    # Select the fittest individuals to reproduce
+    fittest_indices = np.argsort(fitnesses)[-population_size//2:]
+    fittest_individuals = [population[i] for i in fittest_indices]
 
-# Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
-X_test = []
-i = 0
-for x in range(0, len(data.iloc[:236]) - 14):
-    y = data.iloc[i:i + 14]
-    X_test.append(y.values)
-    i = i + 1
+    # Create the next generation by applying crossover and mutation
+    next_generation = []
+    for i in range(population_size):
+        parent1, parent2 = np.random.choice(fittest_individuals, size=2, replace=False)
+        child_weights = crossover(parent1.get_weights(), parent2.get_weights())
+        child_weights = mutate(child_weights, mutation_rate)
+        child = create_model()
+        child.set_weights(child_weights)
+        next_generation.append(child)
 
-X_test = np.array(X_test)
+    # Update the population
+    population = next_generation
 
-# Get predictions on test data
-predictions = []
-for xi in X_test:
-    output = winner_net.activate(xi.flatten())
-    predictions.append(output[0])
+# Evaluate the final population
+fitnesses = [evaluate(model, X_train, y_train) for model in population]
+best_index = np.argmax(fitnesses)
+best_model = population[best_index]
+
+# Get predictions on test data using the best model
+predictions = best_model.predict(X_test)
 trade_signals = np.argmax(predictions, axis=1) - 1  # Convert predicted probabilities to trade signals (-1, 0, 1)
 
 backtest_data['Signal'] = trade_signals
