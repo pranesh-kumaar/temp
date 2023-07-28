@@ -28,52 +28,102 @@ class LTCCell(Layer):
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+
+# Define the neural network architecture
+def create_model():
+    model = Sequential()
+    model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True, input_shape=(14,26)))
+    model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True))
+    model.add(tf.keras.layers.RNN(LTCCell(32)))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dropout(0.2))
+    model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
+    return model
+
+# Define the fitness function
+def evaluate(model, X, y):
+    predictions = model.predict(X)
+    trade_signals = np.argmax(predictions, axis=1) - 1
+    accuracy = np.mean(trade_signals == y)
+    return accuracy
+
+# Define the mutation operator
+def mutate(weights, mutation_rate):
+    new_weights = []
+    for w in weights:
+        if np.random.rand() < mutation_rate:
+            w = w + np.random.normal(size=w.shape)
+        new_weights.append(w)
+    return new_weights
+
+# Define the crossover operator
+def crossover(weights1, weights2):
+    new_weights = []
+    for w1, w2 in zip(weights1, weights2):
+        if np.random.rand() < 0.5:
+            new_weights.append(w1)
+        else:
+            new_weights.append(w2)
+    return new_weights
+
+# Set the hyperparameters
+population_size = 10
+num_generations = 10
+mutation_rate = 0.1
+
+# Create the initial population
+population = [create_model() for _ in range(population_size)]
+
+# Run the genetic algorithm
+for generation in range(num_generations):
+    # Evaluate the fitness of each individual
+    fitnesses = [evaluate(model, X_train, y_train) for model in population]
+
+    # Select the fittest individuals to reproduce
+    fittest_indices = np.argsort(fitnesses)[-population_size//2:]
+    fittest_individuals = [population[i] for i in fittest_indices]
+
+    # Create the next generation by applying crossover and mutation
+    next_generation = []
+    for i in range(population_size):
+        parent1, parent2 = np.random.choice(fittest_individuals, size=2, replace=False)
+        child_weights = crossover(parent1.get_weights(), parent2.get_weights())
+        child_weights = mutate(child_weights, mutation_rate)
+        child = create_model()
+        child.set_weights(child_weights)
+        next_generation.append(child)
+
+    # Update the population
+    population = next_generation
+
+# Evaluate the final population
+fitnesses = [evaluate(model, X_train, y_train) for model in population]
+best_index = np.argmax(fitnesses)
+best_model = population[best_index]
 
 # Assuming your dataset is loaded and stored in X_train and y_train
 # X_train should be a 3D array with shape (number of samples, 14, 26)
-data = df.drop(['Open', 'Close', 'High', 'Low'], axis=1)
-X_train = []
-i = 0
-for x in range(0, len(data) - 14):
-    y = data.iloc[i:i + 14]
+data=df.drop(['Open','Close','High','Low'],axis=1)
+X_train=[]
+i=0
+for x in range(0,len(data)-14):
+    y=data.iloc[i:i+14]
     X_train.append(y.values)
-    i = i + 1
+    i=i+1
 
-X_train = np.array(X_train)
+X_train=np.array(X_train)
 
-dfy = df['Signal'].iloc[14:].values
-y_train = []
+dfy=df['Signal'].iloc[14:].values
+y_train=[]
 for x in dfy:
-    y_train.append(x + 1)
+   y_train.append(x+1)
 
-y_train = np.array(y_train)
-
-# Build the feedforward neural network
-model = Sequential()
-model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True, input_shape=(14,26)))
-model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True))
-model.add(tf.keras.layers.RNN(LTCCell(32)))
-model.add(Dense(64, activation='relu'))
-model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
-
-# Compile the model
-opt = Adam(learning_rate=0.0005)
-model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-# EarlyStopping and ModelCheckpoint
-early_stopping = EarlyStopping(patience=3, monitor='val_accuracy', restore_best_weights=True)
-model_checkpoint = ModelCheckpoint('best_model.h5', save_best_only=True, monitor='val_accuracy', mode='max')
-
-# Train the model 
-history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+y_train=np.array(y_train)
 
 # Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
-X_test = []
-i = 0
+X_test=[]
+i=0
 for x in range(0,len(data.iloc[:236])-14):
     y=data.iloc[i:i+14]
     X_test.append(y.values)
@@ -81,8 +131,8 @@ for x in range(0,len(data.iloc[:236])-14):
 
 X_test=np.array(X_test)
 
-# Get predictions on test data
-predictions = model.predict(X_test)
+# Get predictions on test data using the best model
+predictions = best_model.predict(X_test)
 trade_signals = np.argmax(predictions, axis=1) - 1  # Convert predicted probabilities to trade signals (-1, 0, 1)
 
 backtest_data['Signal'] = trade_signals
