@@ -1,38 +1,119 @@
-ValueError                                Traceback (most recent call last)
-~\AppData\Local\Temp\2\ipykernel_29620\3079990056.py in <cell line: 47>()
-     45 
-     46 # Train the model with validation
----> 47 history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
-     48 
-     49 # Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
+import tensorflow as tf
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer
 
-c:\users\v807880\jpy\lib\site-packages\keras\utils\traceback_utils.py in error_handler(*args, **kwargs)
-     68             # To get the full stack trace, call:
-     69             # `tf.debugging.disable_traceback_filtering()`
----> 70             raise e.with_traceback(filtered_tb) from None
-     71         finally:
-     72             del filtered_tb
+class LTCCell(Layer):
+    def __init__(self, units, **kwargs):
+        self.units = units
+        self.state_size = units
+        super(LTCCell, self).__init__(**kwargs)
 
-c:\users\v807880\jpy\lib\site-packages\keras\engine\training.py in tf__train_function(iterator)
-     13                 try:
-     14                     do_return = True
----> 15                     retval_ = ag__.converted_call(ag__.ld(step_function), (ag__.ld(self), ag__.ld(iterator)), None, fscope)
-     16                 except:
-     17                     do_return = False
+    def build(self, input_shape):
+        input_dim = input_shape[-1]
+        self.kernel = self.add_weight(shape=(input_dim, self.units),
+                                      initializer='glorot_uniform',
+                                      name='kernel')
+        self.recurrent_kernel = self.add_weight(
+            shape=(self.units, self.units),
+            initializer='orthogonal',
+            name='recurrent_kernel')
+        self.built = True
 
-ValueError: in user code:
+    def call(self, inputs, states):
+        prev_output = states[0]
+        h = K.dot(inputs, self.kernel)
+        output = h + K.dot(prev_output, self.recurrent_kernel)
+        return output, [output]
 
-    File "c:\users\v807880\jpy\lib\site-packages\keras\engine\training.py", line 1160, in train_function  *
-        return step_function(self, iterator)
-    File "c:\users\v807880\jpy\lib\site-packages\keras\engine\training.py", line 1146, in step_function  **
-        outputs = model.distribute_strategy.run(run_step, args=(data,))
-    File "c:\users\v807880\jpy\lib\site-packages\keras\engine\training.py", line 1135, in run_step  **
-        outputs = model.train_step(data)
-    File "c:\users\v807880\jpy\lib\site-packages\keras\engine\training.py", line 993, in train_step
-        y_pred = self(x, training=True)
-    File "c:\users\v807880\jpy\lib\site-packages\keras\utils\traceback_utils.py", line 70, in error_handler
-        raise e.with_traceback(filtered_tb) from None
-    File "c:\users\v807880\jpy\lib\site-packages\keras\engine\input_spec.py", line 295, in assert_input_compatibility
-        raise ValueError(
 
-    ValueError: Input 0 of layer "sequential_94" is incompatible with the layer: expected shape=(None, 14, 26), found shape=(None, 364)
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+
+# Assuming your dataset is loaded and stored in X_train and y_train
+# X_train should be a 3D array with shape (number of samples, 14, 26)
+data = df.drop(['Open', 'Close', 'High', 'Low'], axis=1)
+X_train = []
+i = 0
+for x in range(0, len(data) - 14):
+    y = data.iloc[i:i + 14]
+    X_train.append(y.values)
+    i = i + 1
+
+X_train = np.array(X_train)
+
+dfy = df['Signal'].iloc[14:].values
+y_train = []
+for x in dfy:
+    y_train.append(x + 1)
+
+y_train = np.array(y_train)
+
+# Reshape the input data to a 2D array (flatten the 3D array)
+# X_train = X_train.reshape(X_train.shape[0], -1)
+
+# Build the feedforward neural network
+model = Sequential()
+model.add(tf.keras.layers.RNN(LTCCell(32), input_shape=(14,26)))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dropout(0.2))
+model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
+
+# Compile the model
+opt = Adam(learning_rate=0.0005)
+model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# EarlyStopping and ModelCheckpoint
+early_stopping = EarlyStopping(patience=3, monitor='val_accuracy', restore_best_weights=True)
+model_checkpoint = ModelCheckpoint('best_model.h5', save_best_only=True, monitor='val_accuracy', mode='max')
+
+# Train the model with validation
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose = 0)
+
+# Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
+X_test = []
+i = 0
+for x in range(0, len(data.iloc[:236]) - 14):
+    y = data.iloc[i:i + 14]
+    X_test.append(y.values)
+    i = i + 1
+
+X_test = np.array(X_test)
+# Reshape the test data to a 2D array (flatten the 3D array)
+# X_test = X_test.reshape(X_test.shape[0], -1)
+
+# Get predictions on test data
+predictions = model.predict(X_test)
+trade_signals = np.argmax(predictions, axis=1) - 1  # Convert predicted probabilities to trade signals (-1, 0, 1)
+
+# trade_signals now contains the predicted trade signals for each row in your test data
+
+backtest_data['Signal'] = trade_signals
+
+from backtesting import Backtest, Strategy
+
+class SignalStrategy(Strategy):
+    def init(self):
+        pass
+    
+    def next(self):
+        global index
+        index = []
+        current_signal = self.data.Signal[-1]
+        if current_signal == 1:
+            if not self.position:
+                self.buy()
+        elif current_signal == -1:
+            if self.position:
+                self.position.close()
+                
+# train_data = pd.read_excel(r'data_with_signals/AAPL.xlsx').set_index('Date')
+bt = Backtest(backtest_data, SignalStrategy, cash = 10_000)
+stats = bt.run()
+
+bt.plot()
+print (stats[6]) #stats[6] gives the returns
