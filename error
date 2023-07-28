@@ -1,0 +1,31 @@
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+~\AppData\Local\Temp\2\ipykernel_29620\29615673.py in <cell line: 32>()
+     30 # Build the feedforward neural network
+     31 model = Sequential()
+---> 32 model.add(tf.keras.layers.RNN(LTCCell(32), input_shape=(14*26,)))
+     33 model.add(Dense(64, activation='relu'))
+     34 model.add(Dense(64, activation='relu'))
+
+c:\users\v807880\jpy\lib\site-packages\tensorflow\python\trackable\base.py in _method_wrapper(self, *args, **kwargs)
+    203     self._self_setattr_tracking = False  # pylint: disable=protected-access
+    204     try:
+--> 205       result = method(self, *args, **kwargs)
+    206     finally:
+    207       self._self_setattr_tracking = previous_value  # pylint: disable=protected-access
+
+c:\users\v807880\jpy\lib\site-packages\keras\utils\traceback_utils.py in error_handler(*args, **kwargs)
+     68             # To get the full stack trace, call:
+     69             # `tf.debugging.disable_traceback_filtering()`
+---> 70             raise e.with_traceback(filtered_tb) from None
+     71         finally:
+     72             del filtered_tb
+
+~\AppData\Local\Temp\2\ipykernel_29620\1182681284.py in build(self, input_shape)
+     11     def build(self, input_shape):
+     12         input_dim = input_shape[-1]
+---> 13         self.kernel = self.add_weight(shape=(input_dim, self.units),
+     14                                       initializer='glorot_uniform',
+     15                                       name='kernel')
+
+TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
