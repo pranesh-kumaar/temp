@@ -1,0 +1,36 @@
+import tensorflow as tf
+
+class LTCCell(tf.keras.layers.Layer):
+    def __init__(self, units, **kwargs):
+        super(LTCCell, self).__init__(**kwargs)
+        self.units = units
+        self.state_size = units
+
+    def build(self, input_shape):
+        self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+                                      initializer='glorot_uniform',
+                                      name='kernel')
+        self.recurrent_kernel = self.add_weight(
+            shape=(self.units, self.units),
+            initializer='orthogonal',
+            name='recurrent_kernel')
+        self.bias = self.add_weight(shape=(self.units,),
+                                    initializer='zeros',
+                                    name='bias')
+        self.built = True
+
+    def call(self, inputs, states):
+        prev_output = states[0]
+        h = tf.matmul(inputs, self.kernel)
+        output = h + tf.matmul(prev_output, self.recurrent_kernel) + self.bias
+        return output, [output]
+
+# Define the model architecture
+model = tf.keras.Sequential()
+model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True))
+model.add(tf.keras.layers.Dense(10))
+
+# Compile the model
+model.compile(loss='sparse_categorical_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
