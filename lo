@@ -29,7 +29,8 @@ X_train = X_train.reshape(X_train.shape[0], -1)
 
 # Build the feedforward neural network
 model = Sequential()
-model.add(Dense(64, activation='relu', input_shape=(14*26,)))
+model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True))(input_shape=(14*26,))
+model.add(Dense(64, activation='relu'))
 model.add(Dense(64, activation='relu'))
 model.add(Dropout(0.2))
 model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
