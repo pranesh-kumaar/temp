@@ -1,7 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
+from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 # Assuming your dataset is loaded and stored in X_train and y_train
 # X_train should be a 3D array with shape (number of samples, 14, 26)
@@ -9,11 +11,13 @@ data = df.drop(['Open', 'Close', 'High', 'Low'], axis = 1)
 X_train=[]
 i = 0
 for x in range(0,len(data)-14):
-    y = data.iloc[i+14:i+14+14]
+    y = data.iloc[i:i+14]
     X_train.append(y.values)
     i = i+1
 
 X_train = np.array(X_train)
+
+# X_train = X_train.reshape(X_train.shape[0], -1)
 
 dfy = df['Signal'].iloc[14:].values
 y_train = []
@@ -22,21 +26,48 @@ for x in dfy:
     
 y_train = np.array(y_train)
 
+
+#Nomalizig the input data
+# X_train = X_train/X_train.max()
+
+
 # Build the CNN model
 model = Sequential()
-model.add(Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(14, 26)))
+model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(14, 26)))
 model.add(MaxPooling1D(pool_size=2))
+# model.add(Dropout(0.2))
+# model.add(Conv1D(filters=206, kernel_size=3, activation='relu'))
+# model.add(MaxPooling1D(pool_size=2))
 model.add(Flatten())
+# model.add(Dense(364, activation='relu'))
 model.add(Dense(64, activation='relu'))
 model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
 
 # Compile the model
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+opt = Adam(learning_rate=0.0005)
+model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-# Train the model
-model.fit(X_train, y_train, epochs=10, batch_size=32)
+#EarlyStopping and ModelCheckpoint
+early_stopping = EarlyStopping(patience=3, monitor = 'val_accuracy', restore_best_weights = True)
+model_checkpoint = ModelCheckpoint('best_model.h5', save_best_only = True, monitor = 'val_accuracy', mode = 'max')
+
+X_train = tf.convert_to_tensor(X_train)
+y_train = tf.convert_to_tensor(y_train)
+
+# Train the model with validation
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split = 0.2) # callbacks = [early_stopping, model_checkpoints]
 
 # Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
+X_test=[]
+i = 0
+for x in range(0,len(data.iloc[:236])-14):
+    y = data.iloc[i:i+14]
+    X_test.append(y.values)
+    i = i+1
+
+X_test = np.array(X_test)
+
+# X_test = X_test.reshape(X_test.shape[0], -1)
 
 # Get predictions on test data
 predictions = model.predict(X_test)
