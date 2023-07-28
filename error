@@ -1,3 +1,5 @@
+import neat
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Layer
@@ -25,9 +27,6 @@ class LTCCell(Layer):
         output = h + K.dot(prev_output, self.recurrent_kernel)
         return output, [output]
 
-
-import numpy as np
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
@@ -52,27 +51,33 @@ for x in dfy:
 
 y_train = np.array(y_train)
 
-# Reshape the input data to a 2D array (flatten the 3D array)
-# X_train = X_train.reshape(X_train.shape[0], -1)
+# Define the fitness function
+def eval_genomes(genomes, config):
+    for genome_id, genome in genomes:
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
+        genome.fitness = 0
+        for xi, xo in zip(X_train, y_train):
+            output = net.activate(xi.flatten())
+            genome.fitness -= (output[0] - xo) ** 2
 
-# Build the feedforward neural network
-model = Sequential()
-model.add(tf.keras.layers.RNN(LTCCell(32), input_shape=(14,26)))
-model.add(Dense(64, activation='relu'))
-model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
+# Load configuration file
+config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                     'config-feedforward')
 
-# Compile the model
-opt = Adam(learning_rate=0.0005)
-model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+# Create the population
+p = neat.Population(config)
 
-# EarlyStopping and ModelCheckpoint
-early_stopping = EarlyStopping(patience=3, monitor='val_accuracy', restore_best_weights=True)
-model_checkpoint = ModelCheckpoint('best_model.h5', save_best_only=True, monitor='val_accuracy', mode='max')
+# Add reporters
+p.add_reporter(neat.StdOutReporter(True))
+stats = neat.StatisticsReporter()
+p.add_reporter(stats)
 
-# Train the model with validation
-history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose = 0)
+# Run the genetic algorithm
+winner = p.run(eval_genomes, 50)
+
+# Create the winning network
+winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
 
 # Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
 X_test = []
@@ -83,14 +88,13 @@ for x in range(0, len(data.iloc[:236]) - 14):
     i = i + 1
 
 X_test = np.array(X_test)
-# Reshape the test data to a 2D array (flatten the 3D array)
-# X_test = X_test.reshape(X_test.shape[0], -1)
 
 # Get predictions on test data
-predictions = model.predict(X_test)
+predictions = []
+for xi in X_test:
+    output = winner_net.activate(xi.flatten())
+    predictions.append(output[0])
 trade_signals = np.argmax(predictions, axis=1) - 1  # Convert predicted probabilities to trade signals (-1, 0, 1)
-
-# trade_signals now contains the predicted trade signals for each row in your test data
 
 backtest_data['Signal'] = trade_signals
 
@@ -111,9 +115,8 @@ class SignalStrategy(Strategy):
             if self.position:
                 self.position.close()
                 
-# train_data = pd.read_excel(r'data_with_signals/AAPL.xlsx').set_index('Date')
-bt = Backtest(backtest_data, SignalStrategy, cash = 10_000)
+bt = Backtest(backtest_data, SignalStrategy, cash=10_000)
 stats = bt.run()
 
 bt.plot()
-print (stats[6]) #stats[6] gives the returns
+print(stats[6]) #stats[6] gives the returns
