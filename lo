@@ -6,42 +6,44 @@ import seaborn as sns
 from pandas_datareader import data
 import scipy
 
+# Assume 'signals' contains your stock price data
+
 sim_df = pd.DataFrame()
 sim_df['Close'] = signals['Close']
 sim_df = sim_df.reset_index()
 sim_df = sim_df.set_index('Date')
 
-sim_df = np.log(sim_df).diff().dropna()
-
-S0 = sim_df['Close'][len(sim_df)-1]
-mu = sim_df.mean()
-var = sim_df.var()
-drift = mu - (0.5*var)
-desvest = sim_df.std()
+returns = sim_df['Close'].pct_change().dropna()  # Calculate simple returns
 n_simulations = 30
 days = np.arange(14)
 
 epsilon = scipy.stats.norm.ppf(np.random.rand(len(days), n_simulations))
-returns =  drift.values + desvest.values * epsilon
 returns_interval_1 = np.zeros(len(days))
 returns_interval_2 = np.zeros(len(days))
 expected_returns = np.zeros(len(days))
 
 for t in range(1, len(days)):
-    returns_interval_1[t] = drift*(t-days[0]) + desvest *1.96*np.sqrt(t - days[0])
-    returns_interval_2[t] = drift*(t-days[0]) + desvest *-1.96*np.sqrt(t - days[0])
+    returns_interval_1[t] = returns.mean()*(t-days[0]) + returns.std() * 1.96 * np.sqrt(t - days[0])
+    returns_interval_2[t] = returns.mean()*(t-days[0]) + returns.std() * -1.96 * np.sqrt(t - days[0])
 
-S = np.zeros_like(returns)
-S_interval_1 = np.zeros_like(returns_interval_1)
-S_interval_2 = np.zeros_like(returns_interval_2)
-S_interval_1[0] = S0
-S_interval_2[0] = S0
-S[0] = S0
-expected_returns[0] = S0
+S = np.zeros((len(days), n_simulations))
+S_interval_1 = np.zeros(len(days))
+S_interval_2 = np.zeros(len(days))
+S_interval_1[0] = sim_df['Close'].iloc[-1]
+S_interval_2[0] = sim_df['Close'].iloc[-1]
+S[0] = sim_df['Close'].iloc[-1]
+expected_returns[0] = sim_df['Close'].iloc[-1]
+
 #------------------------------       Price Modeling     ------------------------------#
 
 for t in range(1, len(days)):
-    S[t] = S[t-1]*np.exp(returns[t])
-    S_interval_1[t] = (S0)*np.exp(returns_interval_1[t])
-    S_interval_2[t] = (S0)*np.exp(returns_interval_2[t])
-    expected_returns[t] = (expected_returns[t-1])*np.exp(mu.values)
+    for s in range(n_simulations):
+        S[t, s] = S[t-1, s] * (1 + epsilon[t, s])
+    S_interval_1[t] = S[0] * (1 + returns_interval_1[t])
+    S_interval_2[t] = S[0] * (1 + returns_interval_2[t])
+    expected_returns[t] = expected_returns[t-1] * (1 + returns.mean())
+
+# Now you have arrays S, S_interval_1, and S_interval_2 containing simulated stock prices.
+# 'expected_returns' contains expected prices based on simple returns.
+
+# You can plot the results, calculate statistics, or perform further analysis as needed.
