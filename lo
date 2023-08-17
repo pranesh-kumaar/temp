@@ -1,65 +1,47 @@
+import pandas as pd
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from datetime import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pandas_datareader import data
+import scipy
 
-# Assuming your dataset is loaded and stored in X_train and y_train
-# X_train should be a 3D array with shape (number of samples, 14, 26)
-data = df.drop(['Open', 'Close', 'High', 'Low'], axis=1)
-X_train = []
-i = 0
-for x in range(0, len(data) - 14):
-    y = data.iloc[i:i + 14]
-    X_train.append(y.values)
-    i = i + 1
+sim_df = pd.DataFrame()
+sim_df['Close'] = signals['Close']
+sim_df = sim_df.reset_index()
+sim_df = sim_df.set_index('Date')
 
-X_train = np.array(X_train)
+sim_df = np.log(sim_df).diff().dropna()
 
-dfy = df['Signal'].iloc[14:].values
-y_train = []
-for x in dfy:
-    y_train.append(x + 1)
+S0 = sim_df['Close'][len(sim_df)-1]
+mu = sim_df.mean()
+var = sim_df.var()
+drift = mu - (0.5*var)
+desvest = sim_df.std()
+n_simulations = 30
+days = np.arange(14)
 
-y_train = np.array(y_train)
+epsilon = scipy.stats.norm.ppf(np.random.rand(len(days), n_simulations))
+returns =  drift.values + desvest.values * epsilon
+returns_interval_1 = np.zeros(len(days))
+returns_interval_2 = np.zeros(len(days))
+expected_returns = np.zeros(len(days))
 
-# Reshape the input data to a 2D array (flatten the 3D array)
-X_train = X_train.reshape(X_train.shape[0], -1)
+for t in range(1, len(days)):
+    returns_interval_1[t] = drift*(t-days[0]) + desvest *1.96*np.sqrt(t - days[0])
+    returns_interval_2[t] = drift*(t-days[0]) + desvest *-1.96*np.sqrt(t - days[0])
 
-# Build the feedforward neural network
-model = Sequential()
-model.add(tf.keras.layers.RNN(LTCCell(32), return_sequences=True))(input_shape=(14*26,))
-model.add(Dense(64, activation='relu'))
-model.add(Dense(64, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(3, activation='softmax'))  # 3 output classes for buy (1), sell (-1), and hold (0)
+S = np.zeros_like(returns)
+S_interval_1 = np.zeros_like(returns_interval_1)
+S_interval_2 = np.zeros_like(returns_interval_2)
+S_interval_1[0] = S0
+S_interval_2[0] = S0
+S[0] = S0
+expected_returns[0] = S0
+#------------------------------       Price Modeling     ------------------------------#
 
-# Compile the model
-opt = Adam(learning_rate=0.0005)
-model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-# EarlyStopping and ModelCheckpoint
-early_stopping = EarlyStopping(patience=3, monitor='val_accuracy', restore_best_weights=True)
-model_checkpoint = ModelCheckpoint('best_model.h5', save_best_only=True, monitor='val_accuracy', mode='max')
-
-# Train the model with validation
-history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
-
-# Assuming you have test data stored in X_test (3D array with shape (number of samples, 14, 26))
-X_test = []
-i = 0
-for x in range(0, len(data.iloc[:236]) - 14):
-    y = data.iloc[i:i + 14]
-    X_test.append(y.values)
-    i = i + 1
-
-X_test = np.array(X_test)
-# Reshape the test data to a 2D array (flatten the 3D array)
-X_test = X_test.reshape(X_test.shape[0], -1)
-
-# Get predictions on test data
-predictions = model.predict(X_test)
-trade_signals = np.argmax(predictions, axis=1) - 1  # Convert predicted probabilities to trade signals (-1, 0, 1)
-
-# trade_signals now contains the predicted trade signals for each row in your test data
+for t in range(1, len(days)):
+    S[t] = S[t-1]*np.exp(returns[t])
+    S_interval_1[t] = (S0)*np.exp(returns_interval_1[t])
+    S_interval_2[t] = (S0)*np.exp(returns_interval_2[t])
+    expected_returns[t] = (expected_returns[t-1])*np.exp(mu.values)
