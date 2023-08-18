@@ -6,12 +6,11 @@ for t in range(1, len(days)):
             lis.append(s)
 
 lis = list(set(lis))
-lis = sorted(lis, reverse=True)
+S_list_filtered = []
 
-for t in range(1, len(days)):
-    for s in lis:
-        del S_list[t][s]
+for t in range(len(days)):
+    S_list_filtered.append([S[t][s] for s in range(len(S[t])) if s not in lis])
 
-S_list = np.array(S_list)
+S_list = np.array(S_list_filtered)
 
 print(S_list)
