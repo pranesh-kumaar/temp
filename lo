@@ -1,16 +1,3 @@
-lis = []
-
-for t in range(1, len(days)):
-    for s in range(0, len(S[t])):
-        if S[t][s] > S_interval_1[t] * 1.03 or S[t][s] < S_interval_2[t] * 0.97:
-            lis.append(s)
-
-lis = list(set(lis))
-S_list_filtered = []
-
-for t in range(len(days)):
-    S_list_filtered.append([S[t][s] for s in range(len(S[t])) if s not in lis])
-
-S_list = np.array(S_list_filtered)
-
-print(S_list)
+# Convert filtered simulations to a DataFrame
+simulations_df = pd.DataFrame(S_list, columns=[f"Sim_{i+1}" for i in range(S_list.shape[1])])
+print(simulations_df)
