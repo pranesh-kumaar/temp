@@ -1,3 +1,1 @@
-# Convert filtered simulations to a DataFrame
-simulations_df = pd.DataFrame(S_list, columns=[f"Sim_{i+1}" for i in range(S_list.shape[1])])
-print(simulations_df)
+random_floats = [random.uniform(lower_bound, upper_bound) for _ in range(2)]
