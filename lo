@@ -1,9 +1,17 @@
-is = list(set(lis))
-mask = np.ones_like(S, dtype=bool)
+lis = []
 
 for t in range(1, len(days)):
-    mask[t, lis] = False
+    for s in range(0, len(S[t])):
+        if S[t][s] > S_interval_1[t] * 1.03 or S[t][s] < S_interval_2[t] * 0.97:
+            lis.append(s)
 
-S_list = S * mask
+lis = list(set(lis))
+lis = sorted(lis, reverse=True)
+
+for t in range(1, len(days)):
+    for s in lis:
+        del S_list[t][s]
+
+S_list = np.array(S_list)
 
 print(S_list)
