@@ -1,49 +1,21 @@
-import pandas as pd
-import numpy as np
-from datetime import datetime
-import matplotlib.pyplot as plt
-import seaborn as sns
-from pandas_datareader import data
-import scipy
+# lis = []
+# for t in range(1,len(days)):
+#     for s in range(0,len(S[t])):
+#         if S[t][s] > S_interval_1[t]*(1.03) or S[t][s] < S_interval_2[t]*(0.97):
+#             lis.append(s)
+            
+lis = list(set(lis))
+lis = sorted(lis, reverse = True)
+S_list = list(S)
+for g in range(0, len(S)):
+    S_list[g] = list(S_list[g])
+for t in range(1,len(days)):
+    for s in lis:  
+        del S_list[t][s]  
 
-# Assume 'signals' contains your stock price data
+# for g in range(0, len(S)):
+#     S_list[g] = np.array(S_list[g])
 
-sim_df = pd.DataFrame()
-sim_df['Close'] = signals['Close']
-sim_df = sim_df.reset_index()
-sim_df = sim_df.set_index('Date')
+S_list = np.array(S_list)
 
-returns = sim_df['Close'].pct_change().dropna()  # Calculate simple returns
-n_simulations = 30
-days = np.arange(14)
-
-epsilon = scipy.stats.norm.ppf(np.random.rand(len(days), n_simulations))
-returns_interval_1 = np.zeros(len(days))
-returns_interval_2 = np.zeros(len(days))
-expected_returns = np.zeros(len(days))
-
-for t in range(1, len(days)):
-    returns_interval_1[t] = returns.mean()*(t-days[0]) + returns.std() * 1.96 * np.sqrt(t - days[0])
-    returns_interval_2[t] = returns.mean()*(t-days[0]) + returns.std() * -1.96 * np.sqrt(t - days[0])
-
-S = np.zeros((len(days), n_simulations))
-S_interval_1 = np.zeros(len(days))
-S_interval_2 = np.zeros(len(days))
-S_interval_1[0] = sim_df['Close'].iloc[-1]
-S_interval_2[0] = sim_df['Close'].iloc[-1]
-S[0] = sim_df['Close'].iloc[-1]
-expected_returns[0] = sim_df['Close'].iloc[-1]
-
-#------------------------------       Price Modeling     ------------------------------#
-
-for t in range(1, len(days)):
-    for s in range(n_simulations):
-        S[t, s] = S[t-1, s] * (1 + epsilon[t, s])
-    S_interval_1[t] = S[0] * (1 + returns_interval_1[t])
-    S_interval_2[t] = S[0] * (1 + returns_interval_2[t])
-    expected_returns[t] = expected_returns[t-1] * (1 + returns.mean())
-
-# Now you have arrays S, S_interval_1, and S_interval_2 containing simulated stock prices.
-# 'expected_returns' contains expected prices based on simple returns.
-
-# You can plot the results, calculate statistics, or perform further analysis as needed.
+print (S_list)
