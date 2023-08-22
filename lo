@@ -1,1 +1,18 @@
-random_floats = [random.uniform(lower_bound, upper_bound) for _ in range(2)]
+income = 60000
+credit_score = 720
+
+if income >= 50000 and credit_score >= 700:
+    print("Congratulations! You are eligible for a loan.")
+else:
+    print("Sorry, your loan application was not approved.")
+
+savings = 0
+savings_goal = 10000
+monthly_contribution = 500
+
+while savings < savings_goal:
+    savings += monthly_contribution
+    print(f"Current savings: ${savings}")
+
+print("Congratulations, you've reached your savings goal!")
+
