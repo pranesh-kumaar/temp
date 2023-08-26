@@ -1,18 +1,74 @@
-income = 60000
-credit_score = 720
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.neighbors import NearestNeighbors
+from ta import add_all_ta_features
 
-if income >= 50000 and credit_score >= 700:
-    print("Congratulations! You are eligible for a loan.")
-else:
-    print("Sorry, your loan application was not approved.")
+# Load stock data from Excel file
+excel_file = "path_to_your_excel_file.xlsx"
+stock_data = pd.read_excel(excel_file)
 
-savings = 0
-savings_goal = 10000
-monthly_contribution = 500
+# Ensure that your Excel file has columns named 'Open', 'High', 'Low', 'Close', 'Volume', and 'Label'
 
-while savings < savings_goal:
-    savings += monthly_contribution
-    print(f"Current savings: ${savings}")
+# Calculate technical indicators
+stock_data = add_all_ta_features(stock_data, open="Open", high="High", low="Low", close="Close", volume="Volume")
 
-print("Congratulations, you've reached your savings goal!")
+# Split data into training and testing sets
+train_size = int(0.8 * stock_data.shape[0])
+train_data = stock_data.iloc[:train_size]
+test_data = stock_data.iloc[train_size:]
 
+# Define Lorentzian distance function
+def lorentzian_distance(x1, x2):
+    return np.sqrt(np.sum(np.square(np.arcsinh(x1 - x2))))
+
+# Lorentzian Distance Classifier
+class LorentzianDistanceClassifier:
+    def __init__(self, feature_columns, neighbors_count=8):
+        self.feature_columns = feature_columns
+        self.neighbors_count = neighbors_count
+        self.model = None
+    
+    def fit(self, X_train, y_train):
+        self.X_train = X_train
+        self.y_train = y_train
+        
+        # Train Nearest Neighbors model using Lorentzian distance
+        self.model = NearestNeighbors(n_neighbors=self.neighbors_count,
+                                      metric=lorentzian_distance)
+        self.model.fit(X_train)
+    
+    def predict(self, X_test):
+        predictions = []
+        for x_test in X_test:
+            # Find nearest neighbors using trained model
+            distances, indices = self.model.kneighbors([x_test])
+            nearest_labels = self.y_train.iloc[indices[0]]
+            
+            # Predict label based on majority class of nearest neighbors
+            prediction = np.bincount(nearest_labels).argmax()
+            predictions.append(prediction)
+        return np.array(predictions)
+
+# Select feature columns (RSI, CCI, ADX)
+feature_columns = ['RSI', 'CCI', 'ADX']
+
+# Prepare training and testing data
+X_train = train_data[feature_columns]
+y_train = train_data['Label']
+X_test = test_data[feature_columns]
+
+# Instantiate Lorentzian Distance Classifier
+ldc = LorentzianDistanceClassifier(feature_columns=feature_columns, neighbors_count=8)
+
+# Fit the classifier
+ldc.fit(X_train, y_train)
+
+# Predict using the classifier
+y_pred = ldc.predict(X_test)
+
+# Calculate accuracy
+y_true = test_data['Label']
+accuracy = accuracy_score(y_true, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
