@@ -1,29 +1,30 @@
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
 # Load your dataset
 data = pd.read_csv('your_dataset.csv')
 
-# Separate features (X) and target (y) for classification
-X = data.drop('cluster_column', axis=1)  # Replace 'cluster_column' with your target column
-y = data['cluster_column']
+# Initialize variables to store the best score and corresponding columns
+best_score = -1
+best_columns = []
 
-# Convert categorical columns to one-hot encoded representation
-X_encoded = pd.get_dummies(X, columns=['categorical_column1', 'categorical_column2'])
+# Iterate through all combinations of columns
+for num_columns in range(2, len(data.columns) + 1):
+    for column_combination in combinations(data.columns, num_columns):
+        subset_data = data[list(column_combination)]
+        
+        # Perform K-means clustering
+        num_clusters = 3  # Change as needed
+        kmeans = KMeans(n_clusters=num_clusters)
+        labels = kmeans.fit_predict(subset_data)
+        
+        # Calculate Silhouette Score
+        score = silhouette_score(subset_data, labels)
+        
+        # Update best score and columns if necessary
+        if score > best_score:
+            best_score = score
+            best_columns = column_combination
 
-# Train a Random Forest classifier
-clf = RandomForestClassifier(random_state=0)
-clf.fit(X_encoded, y)
-
-# Get feature importances
-feature_importances = clf.feature_importances_
-
-# Create a list of tuples (feature_name, importance) and sort by importance
-feature_importance_list = list(zip(X_encoded.columns, feature_importances))
-feature_importance_list.sort(key=lambda x: x[1], reverse=True)
-
-# Select top features based on importance
-num_top_features = 5  # You can adjust this number
-top_features = [feature for feature, importance in feature_importance_list[:num_top_features]]
-
-print("Top features for clustering:", top_features)
+print("Best columns for clustering:", best_columns)
