@@ -11,15 +11,10 @@ correlation_threshold = 0.3
 
 # Identify columns with high correlation to any other column
 highly_correlated_columns = set()
-num_columns = len(data.columns)
 
-for i in range(num_columns):
-    for j in range(i + 1, num_columns):
-        if abs(correlation_matrix.iloc[i, j]) > correlation_threshold:
-            col_i = data.columns[i]
-            col_j = data.columns[j]
-            highly_correlated_columns.add(col_i)
-            highly_correlated_columns.add(col_j)
+for column in correlation_matrix.columns:
+    correlated_columns = correlation_matrix.index[abs(correlation_matrix[column]) > correlation_threshold]
+    highly_correlated_columns.update(correlated_columns)
 
 # Exclude the highly correlated columns from potential features
 potential_features = [col for col in data.columns if col not in highly_correlated_columns]
