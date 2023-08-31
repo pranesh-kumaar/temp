@@ -1,33 +1,15 @@
 import pandas as pd
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
+import numpy as np
 
 # Load your dataset
 data = pd.read_csv('your_dataset.csv')
 
-# Handle missing values by dropping rows with missing values
-data = data.dropna()
+# Calculate the percentage of missing values for each column
+missing_percentage = (data.isnull().sum() / len(data)) * 100
 
-# Separate numeric data
-numeric_data = data.select_dtypes(include=['number'])
+# Select columns with the least missing values
+threshold_percentage = 10  # Adjust as needed
+columns_to_include = missing_percentage[missing_percentage < threshold_percentage].index.tolist()
 
-# Apply PCA
-pca = PCA()
-pca.fit(numeric_data)
-
-# Calculate the variance explained by each principal component
-explained_variance = pca.explained_variance_ratio_
-
-# Plot the explained variance
-plt.plot(explained_variance, marker='o')
-plt.xlabel("Principal Component")
-plt.ylabel("Explained Variance")
-plt.title("Explained Variance by Principal Components")
-plt.show()
-
-# Identify columns with high explained variance
-num_top_columns = 5  # You can adjust this number
-top_columns_indices = explained_variance.argsort()[-num_top_columns:][::-1]
-top_columns = numeric_data.columns[top_columns_indices]
-
-print("Top columns for clustering:", top_columns)
+print("Columns with less than", threshold_percentage, "% missing values:")
+print(columns_to_include)
