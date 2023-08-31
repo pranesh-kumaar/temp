@@ -1,15 +1,37 @@
 import pandas as pd
-import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from itertools import combinations
 
 # Load your dataset
 data = pd.read_csv('your_dataset.csv')
 
-# Calculate the percentage of missing values for each column
-missing_percentage = (data.isnull().sum() / len(data)) * 100
+# Handle missing values by dropping rows with missing values
+data = data.dropna()
 
-# Select columns with the least missing values
-threshold_percentage = 10  # Adjust as needed
-columns_to_include = missing_percentage[missing_percentage < threshold_percentage].index.tolist()
+# Separate numeric data
+numeric_data = data.select_dtypes(include=['number'])
 
-print("Columns with less than", threshold_percentage, "% missing values:")
-print(columns_to_include)
+# Initialize variables to store the best score and corresponding columns
+best_score = -1
+best_columns = []
+
+# Iterate through all combinations of columns
+for num_columns in range(2, len(numeric_data.columns) + 1):
+    for column_combination in combinations(numeric_data.columns, num_columns):
+        subset_data = numeric_data[list(column_combination)]
+        
+        # Perform K-means clustering
+        num_clusters = 3  # Change as needed
+        kmeans = KMeans(n_clusters=num_clusters)
+        labels = kmeans.fit_predict(subset_data)
+        
+        # Calculate Silhouette Score
+        score = silhouette_score(subset_data, labels)
+        
+        # Update best score and columns if necessary
+        if score > best_score:
+            best_score = score
+            best_columns = column_combination
+
+print("Best columns for clustering:", best_columns)
