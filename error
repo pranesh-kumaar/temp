@@ -7,11 +7,9 @@ from sklearn.impute import SimpleImputer
 # Load your dataset
 data = pd.read_csv('your_dataset.csv')
 
-# Drop non-numeric columns or perform preprocessing as needed
-numeric_data = data.select_dtypes(include=['number'])
-
 # Handle missing values
 imputer = SimpleImputer(strategy='mean')  # You can use different strategies
+numeric_data = data.select_dtypes(include=['number'])
 imputed_data = pd.DataFrame(imputer.fit_transform(numeric_data), columns=numeric_data.columns)
 
 # Initialize variables to store the best score and corresponding columns
