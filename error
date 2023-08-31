@@ -4,19 +4,22 @@ from sklearn.ensemble import RandomForestClassifier
 # Load your dataset
 data = pd.read_csv('your_dataset.csv')
 
-# Split data into features (X) and target (y) for classification
+# Separate features (X) and target (y) for classification
 X = data.drop('cluster_column', axis=1)  # Replace 'cluster_column' with your target column
 y = data['cluster_column']
 
+# Convert categorical columns to one-hot encoded representation
+X_encoded = pd.get_dummies(X, columns=['categorical_column1', 'categorical_column2'])
+
 # Train a Random Forest classifier
 clf = RandomForestClassifier(random_state=0)
-clf.fit(X, y)
+clf.fit(X_encoded, y)
 
 # Get feature importances
 feature_importances = clf.feature_importances_
 
 # Create a list of tuples (feature_name, importance) and sort by importance
-feature_importance_list = list(zip(X.columns, feature_importances))
+feature_importance_list = list(zip(X_encoded.columns, feature_importances))
 feature_importance_list.sort(key=lambda x: x[1], reverse=True)
 
 # Select top features based on importance
