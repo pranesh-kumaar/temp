@@ -1,17 +1,29 @@
 import numpy as np
 from sklearn.cluster import KMeans
-from yellowbrick.cluster import KElbowVisualizer
+import matplotlib.pyplot as plt
 
 # Generate or load your data (X)
 
-# Instantiate the KMeans model with a range of clusters
-model = KMeans()
-visualizer = KElbowVisualizer(model, k=(1, 11))  # Adjust the range as needed
+# Define a range of possible cluster numbers
+k_values = range(1, 11)  # You can adjust this range as needed
 
-# Fit the visualizer to your data
-visualizer.fit(X)
+# Calculate the within-cluster sum of squares (WCSS) for each k
+wcss = []
+for k in k_values:
+    kmeans = KMeans(n_clusters=k)
+    kmeans.fit(X)
+    wcss.append(kmeans.inertia_)
 
-# Get the optimal number of clusters as an integer
-optimal_k = visualizer.elbow_value_
+# Find the optimal number of clusters (the "elbow" point)
+optimal_k = 1
+min_diff = float('inf')
+for k in range(1, len(wcss)):
+    diff = wcss[k - 1] - wcss[k]
+    if diff < min_diff:
+        min_diff = diff
+        optimal_k = k
+
+# Add 1 to convert to 1-based indexing
+optimal_k += 1
 
 print("Optimal number of clusters:", optimal_k)
