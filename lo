@@ -1,29 +1,22 @@
 import numpy as np
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
+from sklearn.metrics import silhouette_score
 
 # Generate or load your data (X)
 
 # Define a range of possible cluster numbers
-k_values = range(1, 11)  # You can adjust this range as needed
+k_values = range(2, 11)  # You can adjust this range as needed
 
-# Calculate the within-cluster sum of squares (WCSS) for each k
-wcss = []
+best_score = -1
+optimal_k = 2  # Default to 2 clusters
+
 for k in k_values:
     kmeans = KMeans(n_clusters=k)
-    kmeans.fit(X)
-    wcss.append(kmeans.inertia_)
-
-# Find the optimal number of clusters (the "elbow" point)
-optimal_k = 1
-min_diff = float('inf')
-for k in range(1, len(wcss)):
-    diff = wcss[k - 1] - wcss[k]
-    if diff < min_diff:
-        min_diff = diff
+    cluster_labels = kmeans.fit_predict(X)
+    silhouette_avg = silhouette_score(X, cluster_labels)
+    
+    if silhouette_avg > best_score:
+        best_score = silhouette_avg
         optimal_k = k
-
-# Add 1 to convert to 1-based indexing
-optimal_k += 1
 
 print("Optimal number of clusters:", optimal_k)
