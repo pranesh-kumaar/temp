@@ -1,22 +1,30 @@
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from sklearn.cluster import KMeans
-from sklearn.metrics import davies_bouldin_score
+import matplotlib.pyplot as plt
 
 # Generate or load your data (X)
 
-# Define a range of possible cluster numbers
-k_values = range(2, 11)  # You can adjust this range as needed
+# Specify the number of clusters (change this to your desired number)
+n_clusters = 4
 
-best_score = float('inf')
-optimal_k = 2  # Default to 2 clusters
+# Perform K-means clustering
+kmeans = KMeans(n_clusters=n_clusters)
+cluster_labels = kmeans.fit_predict(X)
 
-for k in k_values:
-    kmeans = KMeans(n_clusters=k)
-    cluster_labels = kmeans.fit_predict(X)
-    db_index = davies_bouldin_score(X, cluster_labels)
-    
-    if db_index < best_score:
-        best_score = db_index
-        optimal_k = k
+# Add cluster labels to your data (assuming X is a DataFrame)
+X['Cluster'] = cluster_labels
 
-print("Optimal number of clusters:", optimal_k)
+# Create a Seaborn scatterplot with cluster colors
+sns.set(style='whitegrid')
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=X, x='Feature1', y='Feature2', hue='Cluster', palette='viridis', s=100)
+
+# Plot the cluster centers (optional)
+cluster_centers = kmeans.cluster_centers_
+plt.scatter(cluster_centers[:, 0], cluster_centers[:, 1], c='red', marker='x', s=200, label='Cluster Centers')
+
+plt.title(f'K-means Clustering with {n_clusters} Clusters')
+plt.legend()
+plt.show()
