@@ -8,7 +8,7 @@ def detect_outliers_in_clusters(data, cluster_column, outlier_threshold=0.05):
     # Iterate through each cluster
     for cluster_id in data[cluster_column].unique():
         cluster_subset = data[data[cluster_column] == cluster_id]
-        cluster_data = cluster_subset.drop(columns=[cluster_column])
+        cluster_data = cluster_subset.select_dtypes(include=['float64', 'int64'])  # Select only numeric columns
 
         # Fit Isolation Forest to the cluster data
         isolation_forest = IsolationForest(contamination=outlier_threshold, random_state=42)
