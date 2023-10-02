@@ -1,35 +1,31 @@
 import pandas as pd
-import numpy as np
-from sklearn.mixture import GaussianMixture
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
+from sklearn.ensemble import IsolationForest
 
-# Load data from Excel
-data = pd.read_excel("data.xlsx")
+# Define a function to detect outliers within each cluster
+def detect_outliers_in_clusters(data, cluster_column, outlier_threshold=0.05):
+    outliers = []
 
-# Select the columns for modeling (exclude "profile name" and "region")
-selected_columns = ["age", "wealth", "cash balance", "liabilities", "brokerage", "lending", "mortgage", "deposits"]
+    # Iterate through each cluster
+    for cluster_id in data[cluster_column].unique():
+        cluster_subset = data[data[cluster_column] == cluster_id]
+        cluster_data = cluster_subset.drop(columns=[cluster_column])
 
-# Standardize the data
-scaler = StandardScaler()
-scaled_data = scaler.fit_transform(data[selected_columns])
+        # Fit Isolation Forest to the cluster data
+        isolation_forest = IsolationForest(contamination=outlier_threshold, random_state=42)
+        isolation_forest.fit(cluster_data)
 
-# Create a GMM model with the desired number of components
-n_components = 3  # Adjust this based on your clustering needs
-gmm = GaussianMixture(n_components=n_components, random_state=42)
+        # Predict outliers (1 for inliers, -1 for outliers)
+        cluster_outliers = isolation_forest.predict(cluster_data)
 
-# Fit the GMM model to the scaled data
-gmm.fit(scaled_data)
+        # Append the outlier labels to the original DataFrame
+        cluster_subset["IsOutlier"] = cluster_outliers
+        outliers.append(cluster_subset)
 
-# Predict cluster labels for each data point
-labels = gmm.predict(scaled_data)
+    return pd.concat(outliers)
 
-# Add cluster labels back to the original DataFrame
-data["cluster"] = labels
+# Detect outliers within each cluster
+outliers_df = detect_outliers_in_clusters(gmm_data, cluster_column="Cluster")
 
-# Visualize the results (for example, using a scatter plot of two features)
-plt.scatter(data["age"], data["wealth"], c=data["cluster"], cmap='viridis')
-plt.title('GMM Clustering Results')
-plt.xlabel('Age')
-plt.ylabel('Wealth')
-plt.show()
+# Print the detected outliers
+print("Detected Outliers:")
+print(outliers_df[outliers_df["IsOutlier"] == -1])
