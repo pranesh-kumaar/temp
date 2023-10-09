@@ -20,22 +20,15 @@ combined_df = pd.concat([tsne_df, original_df], axis=1)
 # Calculate the correlation matrix
 correlation_matrix = combined_df.corr()
 
-# Separate correlation heatmaps for each t-SNE dimension
-for dimension in tsne_df.columns:
-    dim_correlation_matrix = correlation_matrix[[dimension]].drop(index=[dimension])
-    dim_correlation_matrix = dim_correlation_matrix.drop(columns=[dimension])
-    
-    # Create a heatmap
-    plt.figure(figsize=(6, 4))
-    sns.heatmap(dim_correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5, fmt=".2f")
-    plt.title(f'Correlation Heatmap for {dimension}')
-    plt.savefig(f'tsne_correlation_heatmap_{dimension}.png')  # Save the heatmap as an image
-    plt.show()
+# Separate correlation matrices for each t-SNE dimension
+correlation_matrix_dim1 = correlation_matrix[['t-SNE Dimension 1']].drop(index=['t-SNE Dimension 1'])
+correlation_matrix_dim1 = correlation_matrix_dim1.drop(columns=['t-SNE Dimension 1'])
 
-# Drop rows and columns where correlation couldn't be shown
-correlation_matrix = correlation_matrix.dropna(axis=0, how='all').dropna(axis=1, how='all')
+correlation_matrix_dim2 = correlation_matrix[['t-SNE Dimension 2']].drop(index=['t-SNE Dimension 2'])
+correlation_matrix_dim2 = correlation_matrix_dim2.drop(columns=['t-SNE Dimension 2'])
 
-# Save the correlation matrix to an Excel file with color grading
-cmap = sns.color_palette("coolwarm", as_cmap=True)
-correlation_styled = correlation_matrix.style.background_gradient(cmap=cmap, axis=None).set_precision(2)
-correlation_styled.to_excel('tsne_correlation_matrix_colored.xlsx', engine='openpyxl', index=False)
+# Create Excel writer
+with pd.ExcelWriter('tsne_correlation_matrices.xlsx', engine='openpyxl') as writer:
+    # Write correlation matrices to separate sheets
+    correlation_matrix_dim1.to_excel(writer, sheet_name='Sheet1', index=True)
+    correlation_matrix_dim2.to_excel(writer, sheet_name='Sheet2', index=True)
