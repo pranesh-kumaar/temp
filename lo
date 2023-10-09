@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
@@ -21,12 +20,22 @@ combined_df = pd.concat([tsne_df, original_df], axis=1)
 # Calculate the correlation matrix
 correlation_matrix = combined_df.corr()
 
-# Create a heatmap
-plt.figure(figsize=(10, 8))
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
-plt.title('Correlation Heatmap between t-SNE Dimensions and Features')
-plt.savefig('tsne_correlation_heatmap.png')  # Save the heatmap as an image
-plt.show()
+# Separate correlation heatmaps for each t-SNE dimension
+for dimension in tsne_df.columns:
+    dim_correlation_matrix = correlation_matrix[[dimension]].drop(index=[dimension])
+    dim_correlation_matrix = dim_correlation_matrix.drop(columns=[dimension])
+    
+    # Create a heatmap
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(dim_correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5, fmt=".2f")
+    plt.title(f'Correlation Heatmap for {dimension}')
+    plt.savefig(f'tsne_correlation_heatmap_{dimension}.png')  # Save the heatmap as an image
+    plt.show()
 
-# Save the correlation matrix to an Excel file
-correlation_matrix.to_excel('tsne_correlation_matrix.xlsx', index=False)
+# Drop rows and columns where correlation couldn't be shown
+correlation_matrix = correlation_matrix.dropna(axis=0, how='all').dropna(axis=1, how='all')
+
+# Save the correlation matrix to an Excel file with color grading
+cmap = sns.color_palette("coolwarm", as_cmap=True)
+correlation_styled = correlation_matrix.style.background_gradient(cmap=cmap, axis=None).set_precision(2)
+correlation_styled.to_excel('tsne_correlation_matrix_colored.xlsx', engine='openpyxl', index=False)
