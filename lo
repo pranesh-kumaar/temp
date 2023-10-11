@@ -1,34 +1,28 @@
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
-from sklearn.datasets import load_iris  # Replace with your dataset
+from mpl_toolkits.mplot3d import Axes3D
 
-# Load your dataset (replace 'load_iris()' with your data loading code)
-data = load_iris()
-X = data.data  # Your feature data
+# Load your dataset
+data = pd.read_csv('data.csv')
 
-# Perform t-SNE
-tsne = TSNE(n_components=2, random_state=42)
-tsne_results = tsne.fit_transform(X)
+# Extract the three features and cluster labels
+net_worth = data['Net Worth']
+investment = data['Investment']
+liabilities = data['Liabilities']
+cluster_labels = data['Cluster']
 
-# Create a DataFrame combining t-SNE results and original features
-tsne_df = pd.DataFrame(data=tsne_results, columns=['t-SNE Dimension 1', 't-SNE Dimension 2'])
-original_df = pd.DataFrame(data=X, columns=data.feature_names)
-combined_df = pd.concat([tsne_df, original_df], axis=1)
+# Create a 3D scatter plot
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 
-# Calculate the correlation matrix
-correlation_matrix = combined_df.corr()
+# Plot data points for each cluster
+for cluster in set(cluster_labels):
+    cluster_data = data[data['Cluster'] == cluster]
+    ax.scatter(cluster_data['Net Worth'], cluster_data['Investment'], cluster_data['Liabilities'], label=f'Cluster {cluster}')
 
-# Separate correlation matrices for each t-SNE dimension
-correlation_matrix_dim1 = correlation_matrix[['t-SNE Dimension 1']].drop(index=['t-SNE Dimension 1'])
-correlation_matrix_dim1 = correlation_matrix_dim1.drop(columns=['t-SNE Dimension 1'])
+ax.set_xlabel('Net Worth')
+ax.set_ylabel('Investment')
+ax.set_zlabel('Liabilities')
+ax.legend()
 
-correlation_matrix_dim2 = correlation_matrix[['t-SNE Dimension 2']].drop(index=['t-SNE Dimension 2'])
-correlation_matrix_dim2 = correlation_matrix_dim2.drop(columns=['t-SNE Dimension 2'])
-
-# Create Excel writer
-with pd.ExcelWriter('tsne_correlation_matrices.xlsx', engine='openpyxl') as writer:
-    # Write correlation matrices to separate sheets
-    correlation_matrix_dim1.to_excel(writer, sheet_name='Sheet1', index=True)
-    correlation_matrix_dim2.to_excel(writer, sheet_name='Sheet2', index=True)
+plt.show()
