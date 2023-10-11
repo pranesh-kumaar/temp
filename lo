@@ -15,10 +15,13 @@ cluster_labels = data['Cluster']
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-# Plot data points for each cluster
+# Define a colormap for clusters
+colormap = plt.cm.get_cmap('tab20', len(set(cluster_labels)))
+
+# Plot data points for each cluster with different colors
 for cluster in set(cluster_labels):
     cluster_data = data[data['Cluster'] == cluster]
-    ax.scatter(cluster_data['Net Worth'], cluster_data['Investment'], cluster_data['Liabilities'], label=f'Cluster {cluster}')
+    ax.scatter(cluster_data['Net Worth'], cluster_data['Investment'], cluster_data['Liabilities'], label=f'Cluster {cluster}', c=colormap(cluster))
 
 ax.set_xlabel('Net Worth')
 ax.set_ylabel('Investment')
