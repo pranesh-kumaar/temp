@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.widgets import Button
 
 # Load your dataset
 data = pd.read_csv('data.csv')
@@ -16,7 +17,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
 # Define a colormap for clusters
-colormap = plt.cm.get_cmap('tab20', len(set(cluster_labels)))
+colormap = plt.cm.get_cmap('tab20', len(set(cluster_labels))
 
 # Plot data points for each cluster with different colors
 for cluster in set(cluster_labels):
@@ -27,5 +28,16 @@ ax.set_xlabel('Net Worth')
 ax.set_ylabel('Investment')
 ax.set_zlabel('Liabilities')
 ax.legend()
+
+# Define the zoom function for the button
+def zoom(event):
+    ax.set_xlim(0, 2000000)  # Set your desired zoom limits
+    ax.set_ylim(0, 2000000)
+    ax.set_zlim(0, 2000000)
+    plt.draw()
+
+# Create a zoom button
+zoom_button = Button(plt.axes([0.85, 0.025, 0.1, 0.04]), 'Zoom')
+zoom_button.on_clicked(zoom)
 
 plt.show()
