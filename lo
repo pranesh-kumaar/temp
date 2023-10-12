@@ -1,66 +1,14 @@
-import streamlit as st
+import numpy as np
+import pandas as pd
+from scipy.cluster.hierarchy import linkage, dendrogram
+import matplotlib.pyplot as plt
 
-# Define custom CSS
-custom_css = """
-<style>
-    /* Change the font size and font for the custom radio options */
-    .custom-radio label {
-        display: block;
-        position: relative;
-        padding-left: 35px;
-        margin-bottom: 12px;
-        cursor: pointer;
-        font-family: 'Your Desired Font', sans-serif;
-        font-size: 24px;
-    }
+# Load or create your client data as a DataFrame
+client_data = pd.read_csv('your_client_data.csv')  # Replace with your data file
 
-    .custom-radio input {
-        position: absolute;
-        opacity: 0;
-        cursor: pointer;
-    }
+# Perform hierarchical clustering
+linked = linkage(client_data, method='ward')  # You can choose a different linkage method
 
-    .custom-radio-checkmark {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 30px;
-        width: 30px;
-        background-color: #ccc;
-        border-radius: 50%;
-    }
-
-    .custom-radio label:hover input ~ .custom-radio-checkmark {
-        background-color: #ddd;
-    }
-
-    .custom-radio input:checked ~ .custom-radio-checkmark {
-        background-color: #2196F3;
-    }
-
-    .custom-radio-checkmark:after {
-        content: "";
-        position: absolute;
-        display: none;
-    }
-
-    .custom-radio input:checked ~ .custom-radio-checkmark:after {
-        display: block;
-    }
-
-    .custom-radio label .custom-radio-checkmark:after {
-        top: 9px;
-        left: 9px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: white;
-    }
-</style>
-"""
-
-# Apply the custom CSS
-st.markdown(custom_css, unsafe_allow_html=True)
-
-# Create custom radio buttons
-option = st.radio("Select an option", ("Option 1", "Option 2", "Option 3"), format_func=lambda x: '')
+# Create a dendrogram to visualize the clusters
+dendrogram(linked, orientation='top', labels=client_data.index)
+plt.show()
