@@ -1,9 +1,20 @@
-import pandas as pd
-import plotly.express as px
+import streamlit as st
 
-# Load your dataset
-data = pd.read_csv('data.csv')
+# Define custom CSS
+custom_css = """
+<style>
+    /* Change the font for the radio options */
+    .radio-box label {
+        font-family: 'Your Desired Font', sans-serif; /* Replace 'Your Desired Font' with the actual font name */
+    }
+</style>
+"""
 
-# Create an interactive 3D scatter plot
-fig = px.scatter_3d(data, x='Net Worth', y='Investment', z='Liabilities', color='Cluster', opacity=0.7, title='K-Means Clustering')
-fig.show()
+# Apply the custom CSS
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# Create a radio button with custom fonts
+selected_option = st.radio("Select an option", ["Option 1", "Option 2", "Option 3"])
+
+# Display the selected option
+st.write("You selected:", selected_option)
