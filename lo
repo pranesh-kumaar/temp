@@ -1,20 +1,7 @@
-import streamlit as st
-
-# Define custom CSS
-custom_css = """
-<style>
-    /* Change the font for the radio options */
-    .radio-box label {
-        font-family: 'Your Desired Font', sans-serif; /* Replace 'Your Desired Font' with the actual font name */
+st.markdown(
+        """<style>
+    div[class*="stRadio"] > label > div[data-testid="stMarkdownContainer"] > p {
+        font-size: 32px;
     }
-</style>
-"""
-
-# Apply the custom CSS
-st.markdown(custom_css, unsafe_allow_html=True)
-
-# Create a radio button with custom fonts
-selected_option = st.radio("Select an option", ["Option 1", "Option 2", "Option 3"])
-
-# Display the selected option
-st.write("You selected:", selected_option)
+        </style>
+        """, unsafe_allow_html=True)
