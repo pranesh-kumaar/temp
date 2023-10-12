@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
-from scipy.cluster.hierarchy import linkage, dendrogram
+import seaborn as sns
 import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import linkage, dendrogram
 
 # Load or create your client data as a DataFrame
 client_data = pd.read_csv('your_client_data.csv')  # Replace with your data file
@@ -9,6 +10,12 @@ client_data = pd.read_csv('your_client_data.csv')  # Replace with your data file
 # Perform hierarchical clustering
 linked = linkage(client_data, method='ward')  # You can choose a different linkage method
 
-# Create a dendrogram to visualize the clusters
-dendrogram(linked, orientation='top', labels=client_data.index)
+# Create a better dendrogram visualization using seaborn
+sns.set(style="white")
+plt.figure(figsize=(10, 6))
+dendrogram(linked, orientation='top', labels=client_data.index, distance_sort='descending', show_leaf_counts=True)
+plt.title("Hierarchical Clustering Dendrogram")
+plt.xlabel("Client IDs")
+plt.ylabel("Distance")
+plt.xticks(rotation=90)
 plt.show()
