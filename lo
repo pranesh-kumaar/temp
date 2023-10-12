@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import linkage, dendrogram
-import plotly.express as px
+import plotly.graph_objects as go
 
 # Load or create your client data as a DataFrame
 client_data = pd.read_csv('your_client_data.csv')  # Replace with your data file
@@ -9,8 +9,11 @@ client_data = pd.read_csv('your_client_data.csv')  # Replace with your data file
 # Perform hierarchical clustering
 linked = linkage(client_data, method='ward')  # You can choose a different linkage method
 
-# Create an interactive dendrogram using Plotly
-fig = px.dendrogram(linked, orientation='top', labels=client_data.index)
+# Create a dendrogram
+dendro = dendrogram(linked, orientation='top')
+
+# Convert the dendrogram to a Plotly figure
+fig = go.Figure(data=dendro)
 
 # Customize the appearance of the dendrogram (optional)
 fig.update_layout(
