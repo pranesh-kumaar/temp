@@ -1,26 +1,43 @@
+from sklearn.cluster import MiniBatchKMeans, DBSCAN
+from sklearn.ensemble import IsolationForest
 import numpy as np
-import pandas as pd
-from scipy.cluster.hierarchy import linkage, dendrogram
-import plotly.graph_objects as go
 
-# Load or create your client data as a DataFrame
-client_data = pd.read_csv('your_client_data.csv')  # Replace with your data file
+# Load and preprocess your real-world client data
+df = pd.read_csv('your_client_data.csv')
 
-# Perform hierarchical clustering
-linked = linkage(client_data, method='ward')  # You can choose a different linkage method
+# Feature selection and preprocessing
+features = df[['CashHoldings', 'Liabilities']]
 
-# Create a dendrogram
-dendro = dendrogram(linked, orientation='top')
+# Mini Batch K-Means clustering
+kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
+kmeans_clusters = kmeans.fit_predict(features)
 
-# Convert the dendrogram to a Plotly figure
-fig = go.Figure(data=dendro)
+# DBSCAN clustering
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+dbscan_clusters = dbscan.fit_predict(features)
 
-# Customize the appearance of the dendrogram (optional)
-fig.update_layout(
-    title="Interactive Hierarchical Clustering Dendrogram",
-    xaxis_title="Client IDs",
-    yaxis_title="Distance",
+# Ensemble clusters and mark common clusters
+common_clusters = []
+for cluster_id in set(kmeans_clusters):
+    if cluster_id in dbscan_clusters:
+        common_clusters.append(cluster_id)
+
+# Identify clusters as outliers using Isolation Forest
+outlier_detector = IsolationForest(contamination=0.05)
+outliers = outlier_detector.fit_predict(features)
+
+# Mark clusters that are common and not outliers
+legitimate_clusters = [cluster_id for cluster_id in common_clusters if cluster_id not in outliers]
+
+# Assign cluster labels to the DataFrame
+df['KMeans_Cluster'] = kmeans_clusters
+df['DBSCAN_Cluster'] = dbscan_clusters
+
+# Determine which clients belong to legitimate clusters and which are outliers
+df['Cluster_Status'] = np.where(
+    df['KMeans_Cluster'].isin(legitimate_clusters) & df['DBSCAN_Cluster'].isin(legitimate_clusters),
+    'Legitimate Cluster',
+    'Outlier'
 )
 
-# Show the interactive plot
-fig.show()
+# Visualize and analyze your clusters and outliers
