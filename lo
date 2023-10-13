@@ -1,4 +1,5 @@
-from sklearn.cluster import MiniBatchKMeans, DBSCAN
+from sklearn.cluster import MiniBatchKMeans, DBSCAN, AgglomerativeClustering
+import matplotlib.pyplot as plt
 
 # Load and preprocess your real-world client data
 df = pd.read_csv('your_client_data.csv')
@@ -9,48 +10,33 @@ scaler = StandardScaler()
 scaler.fit(features)
 scaled_data = scaler.transform(features)
 
-# DBSCAN to identify outliers
-dbscan = DBSCAN(eps=0.5, min_samples=5)
-outliers = dbscan.fit_predict(scaled_data)
-outlier_mask = outliers == -1
-
-# Create a plot for DBSCAN clusters
-plt.figure(figsize=(8, 6))
-plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=dbscan.labels_, cmap='viridis')
-plt.title('DBSCAN Clusters')
-plt.show()
-
-# Remove outliers from the dataset
-filtered_features = features[~outlier_mask]
-
-# Mini Batch K-Means clustering on filtered data
+# Define the clustering algorithms
 kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
-kmeans_clusters = kmeans.fit_predict(filtered_features)
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+agg_clustering = AgglomerativeClustering(n_clusters=3)
 
-# Add K-Means cluster information to the DataFrame
-filtered_features['KMeans_Cluster'] = kmeans_clusters
+# Run each clustering algorithm
+kmeans_clusters = kmeans.fit_predict(scaled_data)
+dbscan_clusters = dbscan.fit_predict(scaled_data)
+agg_clusters = agg_clustering.fit_predict(scaled_data)
 
-# Create a plot for K-Means clusters
+# Create an ensemble by stacking the results of clustering algorithms
+ensemble_labels = np.vstack((kmeans_clusters, dbscan_clusters, agg_clusters)).T
+
+# Perform majority voting to assign data points to clusters
+voting_labels = []
+for row in ensemble_labels:
+    unique_labels, counts = np.unique(row, return_counts=True)
+    majority_label = unique_labels[np.argmax(counts)]
+    voting_labels.append(majority_label)
+
+# Identify outliers based on DBSCAN
+outliers = dbscan_clusters == -1
+
+# Visualize the ensemble clusters with outliers
 plt.figure(figsize=(8, 6))
-plt.scatter(filtered_features['Net Worth ($)'], filtered_features['Investable Assets ($)'], c=kmeans_clusters, cmap='viridis')
-plt.title('K-Means Clusters')
-plt.show()
-
-# Determine common clusters between Mini Batch K-Means and DBSCAN
-common_clusters = set(kmeans_clusters) & set(dbscan.labels_)
-
-# Identify clients' cluster status based on ensemble clustering
-filtered_features['Cluster_Status'] = 'Outlier'
-filtered_features.loc[filtered_features.index, 'Cluster_Status'] = 'Not Outlier'
-filtered_features.loc[filtered_features['Cluster_Status'] == 'Not Outlier', 'Cluster_Status'] = np.where(
-    filtered_features.loc[filtered_features['Cluster_Status'] == 'Not Outlier']['KMeans_Cluster'].isin(common_clusters),
-    'Legitimate Cluster',
-    'Outlier'
-)
-
-# Create a plot for the ensemble clusters
-plt.figure(figsize=(8, 6))
-plt.scatter(filtered_features['Net Worth ($)'], filtered_features['Investable Assets ($)'],
-            c=filtered_features['Cluster_Status'].map({'Legitimate Cluster': 0, 'Outlier': 1}), cmap='viridis')
-plt.title('Ensemble Clusters and Outliers')
+plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=voting_labels, cmap='viridis')
+plt.scatter(features['Net Worth ($)'][outliers], features['Investable Assets ($)'][outliers], c='red', marker='x', label='Outliers')
+plt.title('Ensemble Clusters with Outliers (Red "x")')
+plt.legend()
 plt.show()
