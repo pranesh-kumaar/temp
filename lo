@@ -1,38 +1,21 @@
-import warnings
-pd.set_option('mode.chained_assignment', None)
+# Plot K-Means clusters
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 3, 1)
+plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=features['KMeans_Cluster'], cmap='viridis')
+plt.title('K-Means Clusters')
 
-# Feature selection and preprocessing
-features = df[['Net Worth ($)', 'Investable Assets ($)']].fillna(0)
-scaler = StandardScaler()
-scaler.fit(test)
-scaled_data = scaler.transform(features)
+# Plot DBSCAN clusters
+plt.subplot(1, 3, 2)
+plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=dbscan.labels_, cmap='viridis')
+plt.title('DBSCAN Clusters')
 
-# DBSCAN to identify outliers
-dbscan = DBSCAN(eps=0.5, min_samples=5)
-outliers = dbscan.fit_predict(scaled_data)
-outlier_mask = outliers == -1
+# Identify outliers based on DBSCAN
+outliers = dbscan.labels_ == -1
 
-# Remove outliers from the dataset
-filtered_features = features[~outlier_mask]
+# Plot outliers
+plt.subplot(1, 3, 3)
+plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=outliers, cmap='viridis')
+plt.title('Outliers (DBSCAN-based)')
 
-# Mini Batch K-Means clustering on filtered data
-kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
-kmeans_clusters = kmeans.fit_predict(filtered_features)
-
-features['KMeans_cluster'] = -1
-features.loc[~outlier_mask, 'KMeans_Cluster'] = kmeans_clusters
-
-# Determine common clusters between Mini Batch K-Means and DBSCAN
-common_clusters = set(kmeans_clusters) & set(dbscan.labels_)
-
-# Identify clients' cluster status based on ensemble clustering
-features['Cluster_Status'] = 'Outlier'
-features.loc[~features.index.isin(outlier_indices[0]), 'Cluster_Status'] = 'Not Outlier'
-features.loc[features['Cluster_Status'] == 'Not Outlier', 'Cluster_Status'] = np.where(
-    features.loc[features['Cluster_Status'] == 'Not Outlier']['KMeans_Cluster'].isin(common_clusters), 'Legitimate Cluster', 'Outlier')
-
-# Visualize the ensemble clusters
-plt.figure(figsize=(8, 6))
-plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=features['Cluster_Status'].map({'Legitimate Cluster': 0, 'Outlier': 1}), cmap='viridis')
-plt.title('Ensemble Clusters and Outliers')
+plt.tight_layout()
 plt.show()
