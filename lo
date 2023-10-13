@@ -1,30 +1,35 @@
-import matplotlib.pyplot as plt
+from sklearn.cluster import MiniBatchKMeans, DBSCAN
+import numpy as np
 
-# Visualize Mini Batch K-Means clusters
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-plt.scatter(df['CashHoldings'], df['Liabilities'], c=df['KMeans_Cluster'], cmap='viridis')
-plt.title('Mini Batch K-Means Clusters')
+# Load and preprocess your real-world client data
+df = pd.read_csv('your_client_data.csv')
 
-# Visualize DBSCAN clusters
-plt.subplot(1, 2, 2)
-plt.scatter(df['CashHoldings'], df['Liabilities'], c=df['DBSCAN_Cluster'], cmap='viridis')
-plt.title('DBSCAN Clusters')
+# Feature selection and preprocessing
+features = df[['CashHoldings', 'Liabilities']  # Customize based on your data
 
-plt.tight_layout()
-plt.show()
+# DBSCAN to identify outliers
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+outliers = dbscan.fit_predict(features)
+outlier_indices = np.where(outliers == -1)
 
-# Visualize the ensemble clusters and outliers
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
+# Remove outliers from the dataset
+filtered_features = features.drop(outlier_indices)
+
+# Mini Batch K-Means clustering on filtered data
+kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
+kmeans_clusters = kmeans.fit_predict(filtered_features)
+
+# Determine common clusters between Mini Batch K-Means and DBSCAN
+common_clusters = set(kmeans_clusters) & set(dbscan.labels_)
+
+# Identify clients' cluster status based on ensemble clustering
+df['Cluster_Status'] = 'Outlier'
+df.loc[~df.index.isin(outlier_indices[0]), 'Cluster_Status'] = 'Not Outlier'
+df.loc[df['Cluster_Status'] == 'Not Outlier', 'Cluster_Status'] = np.where(
+    df.loc[df['Cluster_Status'] == 'Not Outlier']['KMeans_Cluster'].isin(common_clusters), 'Legitimate Cluster', 'Outlier')
+
+# Visualize the ensemble clusters
+plt.figure(figsize=(8, 6))
 plt.scatter(df['CashHoldings'], df['Liabilities'], c=df['Cluster_Status'].map({'Legitimate Cluster': 0, 'Outlier': 1}), cmap='viridis')
 plt.title('Ensemble Clusters and Outliers')
-
-# Visualize outliers separately
-outliers_df = df[df['Cluster_Status'] == 'Outlier']
-plt.subplot(1, 2, 2)
-plt.scatter(outliers_df['CashHoldings'], outliers_df['Liabilities'], color='red', marker='x')
-plt.title('Outliers')
-
-plt.tight_layout()
 plt.show()
