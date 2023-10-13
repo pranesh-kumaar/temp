@@ -1,43 +1,30 @@
-from sklearn.cluster import MiniBatchKMeans, DBSCAN
-from sklearn.ensemble import IsolationForest
-import numpy as np
+import matplotlib.pyplot as plt
 
-# Load and preprocess your real-world client data
-df = pd.read_csv('your_client_data.csv')
+# Visualize Mini Batch K-Means clusters
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.scatter(df['CashHoldings'], df['Liabilities'], c=df['KMeans_Cluster'], cmap='viridis')
+plt.title('Mini Batch K-Means Clusters')
 
-# Feature selection and preprocessing
-features = df[['CashHoldings', 'Liabilities']]
+# Visualize DBSCAN clusters
+plt.subplot(1, 2, 2)
+plt.scatter(df['CashHoldings'], df['Liabilities'], c=df['DBSCAN_Cluster'], cmap='viridis')
+plt.title('DBSCAN Clusters')
 
-# Mini Batch K-Means clustering
-kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
-kmeans_clusters = kmeans.fit_predict(features)
+plt.tight_layout()
+plt.show()
 
-# DBSCAN clustering
-dbscan = DBSCAN(eps=0.5, min_samples=5)
-dbscan_clusters = dbscan.fit_predict(features)
+# Visualize the ensemble clusters and outliers
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.scatter(df['CashHoldings'], df['Liabilities'], c=df['Cluster_Status'].map({'Legitimate Cluster': 0, 'Outlier': 1}), cmap='viridis')
+plt.title('Ensemble Clusters and Outliers')
 
-# Ensemble clusters and mark common clusters
-common_clusters = []
-for cluster_id in set(kmeans_clusters):
-    if cluster_id in dbscan_clusters:
-        common_clusters.append(cluster_id)
+# Visualize outliers separately
+outliers_df = df[df['Cluster_Status'] == 'Outlier']
+plt.subplot(1, 2, 2)
+plt.scatter(outliers_df['CashHoldings'], outliers_df['Liabilities'], color='red', marker='x')
+plt.title('Outliers')
 
-# Identify clusters as outliers using Isolation Forest
-outlier_detector = IsolationForest(contamination=0.05)
-outliers = outlier_detector.fit_predict(features)
-
-# Mark clusters that are common and not outliers
-legitimate_clusters = [cluster_id for cluster_id in common_clusters if cluster_id not in outliers]
-
-# Assign cluster labels to the DataFrame
-df['KMeans_Cluster'] = kmeans_clusters
-df['DBSCAN_Cluster'] = dbscan_clusters
-
-# Determine which clients belong to legitimate clusters and which are outliers
-df['Cluster_Status'] = np.where(
-    df['KMeans_Cluster'].isin(legitimate_clusters) & df['DBSCAN_Cluster'].isin(legitimate_clusters),
-    'Legitimate Cluster',
-    'Outlier'
-)
-
-# Visualize and analyze your clusters and outliers
+plt.tight_layout()
+plt.show()
