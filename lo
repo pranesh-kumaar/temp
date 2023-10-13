@@ -1,6 +1,7 @@
-from sklearn.cluster import DBSCAN, AgglomerativeClustering, SpectralClustering, GaussianMixture, MiniBatchKMeans
+from sklearn.cluster import MiniBatchKMeans, AgglomerativeClustering, SpectralClustering, GaussianMixture, DBSCAN
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 # Load and preprocess your real-world client data
 df = pd.read_csv('your_client_data.csv')
@@ -11,38 +12,40 @@ scaler = StandardScaler()
 scaler.fit(features)
 scaled_data = scaler.transform(features)
 
-# Define the clustering algorithms
+# Remove outliers using DBSCAN
 dbscan = DBSCAN(eps=0.5, min_samples=5)
+outliers = dbscan.fit_predict(scaled_data) == -1
+filtered_data = scaled_data[~outliers]
+
+# Define the clustering algorithms
+kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
 agg_clustering = AgglomerativeClustering(n_clusters=3)
 spectral = SpectralClustering(n_clusters=3, affinity='nearest_neighbors')
 gmm = GaussianMixture(n_components=3, covariance_type='full', random_state=0)
-kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
 
-# Run each clustering algorithm
-dbscan_clusters = dbscan.fit_predict(scaled_data)
-agg_clusters = agg_clustering.fit_predict(scaled_data)
-spectral_clusters = spectral.fit_predict(scaled_data)
-gmm_clusters = gmm.fit_predict(scaled_data)
-kmeans_clusters = kmeans.fit_predict(scaled_data)
+# Run the clustering algorithms on the filtered data
+kmeans_clusters = kmeans.fit_predict(filtered_data)
+agg_clusters = agg_clustering.fit_predict(filtered_data)
+spectral_clusters = spectral.fit_predict(filtered_data)
+gmm_clusters = gmm.fit_predict(filtered_data)
 
-# Create an ensemble by stacking the results of clustering algorithms
-ensemble_labels = np.vstack((dbscan_clusters, agg_clusters, spectral_clusters, gmm_clusters, kmeans_clusters)).T
-
-# Perform majority voting to assign data points to clusters
+# Create an ensemble model using voting
+ensemble_labels = np.vstack((kmeans_clusters, agg_clusters, spectral_clusters, gmm_clusters)).T
 voting_labels = []
 for row in ensemble_labels:
     unique_labels, counts = np.unique(row, return_counts=True)
     majority_label = unique_labels[np.argmax(counts)]
     voting_labels.append(majority_label)
 
-# Identify outliers based on DBSCAN
-outliers = dbscan_clusters == -1
+# Add the ensemble labels to the original data
+df['Cluster'] = voting_labels
 
-# Visualize each clustering algorithm's results
+# Visualize the results of each clustering algorithm and ensemble
 plt.figure(figsize=(15, 12))
+
 plt.subplot(2, 3, 1)
-plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=dbscan_clusters, cmap='viridis')
-plt.title('DBSCAN Clustering')
+plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=kmeans_clusters, cmap='viridis')
+plt.title('Mini Batch K-Means Clustering')
 
 plt.subplot(2, 3, 2)
 plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=agg_clusters, cmap='viridis')
@@ -57,15 +60,8 @@ plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=gmm_
 plt.title('Gaussian Mixture Model Clustering')
 
 plt.subplot(2, 3, 5)
-plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=kmeans_clusters, cmap='viridis')
-plt.title('Mini Batch K-Means Clustering')
-
-# Visualize the ensemble clusters with outliers as red 'x'
-plt.subplot(2, 3, 6)
-plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=voting_labels, cmap='viridis')
-plt.scatter(features['Net Worth ($)'][outliers], features['Investable Assets ($)'][outliers], c='red', marker='x', label='Outliers')
-plt.title('Ensemble Clusters with Red "x" Outliers')
-plt.legend()
+plt.scatter(features['Net Worth ($)'], features['Investable Assets ($)'], c=df['Cluster'], cmap='viridis')
+plt.title('Ensemble Clustering')
 
 plt.tight_layout()
 plt.show()
