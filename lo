@@ -49,24 +49,29 @@ filtered_df['Cluster'] = voting_labels
 plt.figure(figsize=(15, 12))
 
 plt.subplot(2, 3, 1)
-plt.scatter(filtered_df['Net Worth ($)'], filtered_df['Investable Assets ($)'], c=kmeans_clusters, cmap='viridis')
+plt.scatter(filtered_df[x], filtered_df[y], c=kmeans_clusters, cmap='viridis')
 plt.title('Mini Batch K-Means Clustering')
 
 plt.subplot(2, 3, 2)
-plt.scatter(filtered_df['Net Worth ($)'], filtered_df['Investable Assets ($)'], c=agg_clusters, cmap='viridis')
+plt.scatter(filtered_df[x], filtered_df[y], c=agg_clusters, cmap='viridis')
 plt.title('Agglomerative Clustering')
 
 plt.subplot(2, 3, 3)
-plt.scatter(filtered_df['Net Worth ($)'], filtered_df['Investable Assets ($)'], c=spectral_clusters, cmap='viridis')
+plt.scatter(filtered_df[x], filtered_df[y], c=spectral_clusters, cmap='viridis')
 plt.title('Spectral Clustering')
 
 plt.subplot(2, 3, 4)
-plt.scatter(filtered_df['Net Worth ($)'], filtered_df['Investable Assets ($)'], c=gmm_clusters, cmap='viridis')
+plt.scatter(filtered_df[x], filtered_df[y], c=gmm_clusters, cmap='viridis')
 plt.title('Gaussian Mixture Model Clustering')
 
 plt.subplot(2, 3, 5)
-plt.scatter(filtered_df['Net Worth ($)'], filtered_df['Investable Assets ($)'], c=filtered_df['Cluster'], cmap='viridis')
+plt.scatter(filtered_df[x], filtered_df[y], c=filtered_df['Cluster'], cmap='viridis')
 plt.title('Ensemble Clustering')
+
+# Visualize outliers with red color
+plt.subplot(2, 3, 6)
+plt.scatter(df[x], df[y], c=outliers, cmap='viridis', marker='x', color='red')
+plt.title('Outliers (DBSCAN)')
 
 plt.tight_layout()
 plt.show()
