@@ -1,22 +1,2 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.cluster import AgglomerativeClustering
-from scipy.cluster.hierarchy import dendrogram, linkage
-
-# Assuming you have your data in a variable 'X'
-# X should be a 2D array where rows are samples and columns are features
-
-# Fit the Agglomerative Clustering model
-n_clusters = 3  # You can adjust this to the number of clusters you want
-agg_clustering = AgglomerativeClustering(n_clusters=n_clusters)
-cluster_labels = agg_clustering.fit_predict(X)
-
-# Compute the linkage matrix using the cluster labels
-linkage_matrix = linkage(X, method='ward')  # You can choose a different linkage method
-
-# Visualize the linkage matrix with a dendrogram
-dendrogram(linkage_matrix)
-plt.title('Hierarchical Clustering Dendrogram')
-plt.xlabel('Sample Index')
-plt.ylabel('Distance')
-plt.show()
+umap = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, random_state=42)
+X_umap = umap.fit_transform(X_scaled)
