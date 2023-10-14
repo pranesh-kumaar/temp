@@ -1,77 +1,25 @@
-import pandas as pd
-from sklearn.cluster import MiniBatchKMeans, AgglomerativeClustering, SpectralClustering, DBSCAN
-from sklearn.mixture import GaussianMixture
-import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import StandardScaler
 
-x = 'Mortgage'
-y = 'Liabilities (est.)'
+# Assuming you have your data in a variable 'X'
+# X should be a 2D array where rows are samples and columns are features
 
-# Feature selection and preprocessing
-features = df[[x, y]].fillna(0)
+# Optionally, you can standardize your data to have mean=0 and variance=1
 scaler = StandardScaler()
-scaler.fit(features)
-scaled_data = scaler.transform(features)
+X = scaler.fit_transform(X)
 
-# Remove outliers using DBSCAN
-dbscan = DBSCAN(eps=0.5, min_samples=5)
-outliers = dbscan.fit_predict(scaled_data) == -1
-filtered_data = scaled_data[~outliers]
+# Initialize the Agglomerative Clustering model
+n_clusters = 3  # You can change this to the number of clusters you want
+agg_clustering = AgglomerativeClustering(n_clusters=n_clusters)
 
-# Create a new DataFrame with only the non-outlier rows
-filtered_df = df[~outliers].copy()
+# Fit the model to your data
+agg_clustering.fit(X)
 
-# Define the clustering algorithms
-kmeans = MiniBatchKMeans(n_clusters=3, batch_size=100, random_state=0)
-agg_clustering = AgglomerativeClustering(n_clusters=3)
-spectral = SpectralClustering(n_clusters=3, affinity='nearest_neighbors')
-gmm = GaussianMixture(n_components=3, covariance_type='full', random_state=0)
+# Get the cluster labels for each data point
+cluster_labels = agg_clustering.labels_
 
-# Run the clustering algorithms on the filtered data
-kmeans_clusters = kmeans.fit_predict(filtered_data)
-agg_clusters = agg_clustering.fit_predict(filtered_data)
-spectral_clusters = spectral.fit_predict(filtered_data)
-gmm_clusters = gmm.fit_predict(filtered_data)
+# Now, 'cluster_labels' contains the cluster assignment for each data point
 
-# Create an ensemble model using voting
-ensemble_labels = np.vstack((kmeans_clusters, agg_clusters, spectral_clusters, gmm_clusters)).T
-voting_labels = []
-for row in ensemble_labels:
-    unique_labels, counts = np.unique(row, return_counts=True)
-    majority_label = unique_labels[np.argmax(counts)]
-    voting_labels.append(majority_label)
-
-# Add the ensemble labels to the filtered DataFrame
-filtered_df['Cluster'] = voting_labels
-
-# Visualize the results of each clustering algorithm and ensemble using filtered_df
-plt.figure(figsize=(15, 12))
-
-plt.subplot(2, 3, 1)
-plt.scatter(filtered_df[x], filtered_df[y], c=kmeans_clusters, cmap='viridis')
-plt.title('Mini Batch K-Means Clustering')
-
-plt.subplot(2, 3, 2)
-plt.scatter(filtered_df[x], filtered_df[y], c=agg_clusters, cmap='viridis')
-plt.title('Agglomerative Clustering')
-
-plt.subplot(2, 3, 3)
-plt.scatter(filtered_df[x], filtered_df[y], c=spectral_clusters, cmap='viridis')
-plt.title('Spectral Clustering')
-
-plt.subplot(2, 3, 4)
-plt.scatter(filtered_df[x], filtered_df[y], c=gmm_clusters, cmap='viridis')
-plt.title('Gaussian Mixture Model Clustering')
-
-plt.subplot(2, 3, 5)
-plt.scatter(filtered_df[x], filtered_df[y], c=filtered_df['Cluster'], cmap='viridis')
-plt.title('Ensemble Clustering')
-
-# Visualize outliers with red color
-plt.subplot(2, 3, 6)
-plt.scatter(df[x], df[y], c=outliers, cmap='viridis', marker='x', color='red')
-plt.title('Outliers (DBSCAN)')
-
-plt.tight_layout()
-plt.show()
+# You can also access the linkage matrix, which contains information about the merging of clusters
+linkage_matrix = agg_clustering.children_
