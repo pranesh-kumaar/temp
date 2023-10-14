@@ -1,9 +1,8 @@
 # Create an interactive tree plot using Plotly
-fig = px.treemap(
-    names=cluster_labels,
-    labels=cluster_labels,
-    parents=[f'Cluster {i}' for i in range(n_clusters)],
-)
+tree_data = {'name': [f'Cluster {i}' for i in range(n_clusters)]}
+tree_data['parent'] = [''] * n_clusters  # Set all parents to an empty string
+
+fig = px.treemap(tree_data, names='name', parents='parent', ids='name')
 
 # Display the tree plot in the Streamlit app
 st.plotly_chart(fig)
