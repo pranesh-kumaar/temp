@@ -1,25 +1,17 @@
 import numpy as np
-from sklearn.cluster import AgglomerativeClustering
-from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import dendrogram, linkage
 
-# Assuming you have your data in a variable 'X'
-# X should be a 2D array where rows are samples and columns are features
+# Assuming you have your linkage matrix in a variable 'linkage_matrix'
+# You should have already created the linkage matrix during clustering
 
-# Optionally, you can standardize your data to have mean=0 and variance=1
-scaler = StandardScaler()
-X = scaler.fit_transform(X)
+# Create a dendrogram
+dendrogram(linkage_matrix)
 
-# Initialize the Agglomerative Clustering model
-n_clusters = 3  # You can change this to the number of clusters you want
-agg_clustering = AgglomerativeClustering(n_clusters=n_clusters)
+# Add labels and titles
+plt.title('Hierarchical Clustering Dendrogram')
+plt.xlabel('Sample Index')
+plt.ylabel('Distance')
 
-# Fit the model to your data
-agg_clustering.fit(X)
-
-# Get the cluster labels for each data point
-cluster_labels = agg_clustering.labels_
-
-# Now, 'cluster_labels' contains the cluster assignment for each data point
-
-# You can also access the linkage matrix, which contains information about the merging of clusters
-linkage_matrix = agg_clustering.children_
+# Show the plot
+plt.show()
