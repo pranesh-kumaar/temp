@@ -1,8 +1,3 @@
-# Create an interactive tree plot using Plotly
-tree_data = {'name': [f'Cluster {i}' for i in range(n_clusters)]}
-tree_data['parent'] = [''] * n_clusters  # Set all parents to an empty string
-
-fig = px.treemap(tree_data, names='name', parents='parent', ids='name')
-
-# Display the tree plot in the Streamlit app
-st.plotly_chart(fig)
+iso_forest = IsolationForest(contamination=0.05)  # Adjust the contamination parameter as needed
+outlier_labels = iso_forest.fit_predict(X_scaled)
+cleaned_X = X_scaled[outlier_labels == 1]
