@@ -1,2 +1,8 @@
-umap = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, random_state=42)
-X_umap = umap.fit_transform(X_scaled)
+import io
+from PIL import Image
+
+# Save the dendrogram as an image
+img_bytes = dendrogram.to_image(format="png")
+
+# Display the dendrogram image in the Streamlit app
+st.image(Image.open(io.BytesIO(img_bytes)))
