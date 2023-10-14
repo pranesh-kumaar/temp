@@ -1,8 +1,23 @@
-import io
-from PIL import Image
+# Create a dendrogram using scipy and matplotlib
+plt.figure(figsize=(10, 5))
+dendrogram = sch.dendrogram(linkage_matrix)
+plt.title('Dendrogram')
+plt.xlabel('Samples')
+plt.ylabel('Distance')
+plt.grid(False)
 
 # Save the dendrogram as an image
-img_bytes = dendrogram.to_image(format="png")
+image_path = 'dendrogram.png'
+plt.savefig(image_path)
+plt.close()
 
 # Display the dendrogram image in the Streamlit app
-st.image(Image.open(io.BytesIO(img_bytes)))
+st.image(image_path)
+In this code, we use scipy.cluster.hierarchy.dendrogram to create a static dendrogram and then save it as an image using plt.savefig. Finally, we use st.image to display the dendrogram image within the Streamlit app.
+
+This approach allows you to show the dendrogram in your Streamlit application without needing direct Plotly integration.
+
+
+
+
+
