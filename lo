@@ -1,7 +1,3 @@
-X = np.load(r"C:\Users\V807880\Downloads\X.npy")
-print (X)
-
-# Sidebar to select a cluster
 cluster_index = st.selectbox("Select a Cluster", range(num_clusters))
 
 # Filter data for the selected cluster
@@ -10,7 +6,7 @@ selected_cluster_data = X[selected_cluster_indices]
 
 # Feature Importance using Random Forest (replace with your method)
 clf = RandomForestClassifier()
-clf.fit(X, cluster_labels)
+clf.fit(selected_cluster_data, cluster_labels[selected_cluster_indices])
 feature_importance = clf.feature_importances_
 
 feature_names = [f"{selected_data.columns.values.tolist()[i]}" for i in range(len(feature_importance))]
@@ -21,4 +17,4 @@ feature_importance_df = feature_importance_df.sort_values(by='Importance', ascen
 st.subheader(f'Top 8 Feature Importance for Cluster {cluster_index}:')
 top_features = feature_importance_df.head(8)
 fig = px.bar(top_features, x='Feature', y='Importance')
-st.plotly_chart(fig, theme = 'streamlit')
+st.plotly_chart(fig, use_container_width=True)  # use_container_width=True for better layout
