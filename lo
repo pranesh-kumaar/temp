@@ -1,15 +1,45 @@
-import scipy.cluster.hierarchy as sch
+import streamlit as st
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.ensemble import RandomForestClassifier  # Replace with your classifier
+from sklearn.datasets import make_blobs  # Replace with your data
 
-# Replace 'Z' with the linkage matrix obtained from agglomerative clustering
-# For example: Z = sch.linkage(your_data, method='ward')
+# Generate sample data (replace with your data)
+data, _ = make_blobs(n_samples=300, centers=5, random_state=42)
 
-# Set a threshold for linkage distance
-threshold = 5.0  # Adjust this threshold as needed
+# Perform Agglomerative Clustering
+n_clusters = 5  # Replace with the number of clusters you want
+clusterer = AgglomerativeClustering(n_clusters=n_clusters)
+cluster_labels = clusterer.fit_predict(data)
 
-# Use the fcluster method to get the cluster assignments
-cluster_assignments = sch.fcluster(Z, threshold, criterion='distance')
+# Streamlit app
+st.title("Cluster Analysis App")
 
-# Get the number of clusters
-num_clusters = len(set(cluster_assignments))
+# Sidebar to select a cluster
+cluster_index = st.sidebar.selectbox("Select a Cluster", range(n_clusters))
 
-print(f'Number of clusters: {num_clusters}')
+# Filter data for the selected cluster
+selected_cluster_indices = np.where(cluster_labels == cluster_index)[0]
+selected_cluster_data = data[selected_cluster_indices]
+
+# Feature Importance using Random Forest (replace with your method)
+clf = RandomForestClassifier()
+clf.fit(data, cluster_labels)
+feature_importance = clf.feature_importances_
+
+# Create a DataFrame with feature importance scores
+feature_importance_df = pd.DataFrame({'Feature': range(len(feature_importance)), 'Importance': feature_importance})
+feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+# Display Feature Importance
+st.subheader(f'Feature Importance for Cluster {cluster_index}:')
+st.write(feature_importance_df)
+
+# Create a Cluster Heatmap
+st.subheader(f'Cluster Heatmap for Cluster {cluster_index}:')
+fig, ax = plt.subplots()
+sns.heatmap(selected_cluster_data, cmap='coolwarm', ax=ax)
+st.pyplot(fig)
