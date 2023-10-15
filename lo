@@ -1,3 +1,15 @@
-iso_forest = IsolationForest(contamination=0.05)  # Adjust the contamination parameter as needed
-outlier_labels = iso_forest.fit_predict(X_scaled)
-cleaned_X = X_scaled[outlier_labels == 1]
+import scipy.cluster.hierarchy as sch
+
+# Replace 'Z' with the linkage matrix obtained from agglomerative clustering
+# For example: Z = sch.linkage(your_data, method='ward')
+
+# Set a threshold for linkage distance
+threshold = 5.0  # Adjust this threshold as needed
+
+# Use the fcluster method to get the cluster assignments
+cluster_assignments = sch.fcluster(Z, threshold, criterion='distance')
+
+# Get the number of clusters
+num_clusters = len(set(cluster_assignments))
+
+print(f'Number of clusters: {num_clusters}')
