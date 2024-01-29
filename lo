@@ -1,1 +1,27 @@
-with pd.ExcelWriter
+import pandas as pd
+
+# Create a pandas DataFrame (example data)
+data = {'Column1': [1, 2, 3], 'Column2': ['A', 'B', 'C']}
+df = pd.DataFrame(data)
+
+# Specify the path to your Excel file
+excel_file_path = 'Ratings Change.xlsx'
+
+# Write the DataFrame to Excel using pd.ExcelWriter
+with pd.ExcelWriter(excel_file_path, engine='xlsxwriter') as writer:
+    df.to_excel(writer, sheet_name='Sheet1', index=False)
+    # Add more sheets and data as needed
+
+    # Get the xlsxwriter workbook and worksheet objects
+    workbook  = writer.book
+    sheets = workbook.sheetnames()
+
+    # Iterate through all sheets and autofit columns
+    for sheet_name in sheets:
+        worksheet = writer.sheets[sheet_name]
+        for i, col in enumerate(df.columns):
+            max_len = max(df[col].astype(str).apply(len).max(), len(col))
+            worksheet.set_column(i, i, max_len + 2)
+
+# Explicitly save the Excel file
+writer.save()
