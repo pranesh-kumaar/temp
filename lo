@@ -1,2 +1,1 @@
-with pd.ExcelWriter('Ratings Change.xlsx', engine='xlsxwriter') as writer:
-                high_52W_breach.to_excel(writer, sheet_name='52 week high breached')
+with pd.ExcelWriter
