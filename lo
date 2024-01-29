@@ -1,22 +1,2 @@
-agg_feature = FeatureAgglomeration()
-reduced_data = agg_feature.fit_transform(selected_data.T)
-
-# Calculate dendrogram using linkage and pdist
-distances = pdist(reduced_data)
-linkage_matrix = linkage(distances, method='ward')
-
-# Create a dendrogram using Plotly
-fig = go.Figure()
-dendrogram_fig = dendrogram(linkage_matrix, orientation="top", labels = selected_data.columns)
-
-# Extract the x and y coordinates from the dendrogram
-x_coord = dendrogram_fig["icoord"]
-y_coord = dendrogram_fig["dcoord"]
-
-# Plot the dendrogram as a series of lines
-for x, y in zip(x_coord, y_coord):
-fig.add_trace(go.Scatter(x=x, y=y, mode="lines"))
-
-
-fig.update_layout(title="Dendrogram")
-st.plotly_chart(fig)
+with pd.ExcelWriter('Ratings Change.xlsx', engine='xlsxwriter') as writer:
+                high_52W_breach.to_excel(writer, sheet_name='52 week high breached')
