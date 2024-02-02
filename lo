@@ -19,8 +19,9 @@ weights = LpVariable.dicts("Weight", df['Strategy'], 0, 1)
 # Objective function: maximize portfolio returns
 prob += lpSum([df.loc[i, 'Returns'] * weights[strategy] for i, strategy in enumerate(df['Strategy'])])
 
-# Constraint: sum of weights equals 1
-prob += lpSum([weights[strategy] for strategy in df['Strategy']]) == 1
+# Constraint: sum of weights equals 1 for each strategy
+for strategy in df['Strategy']:
+    prob += lpSum([weights[strategy]]) == 1
 
 # Constraints on asset class weights for each strategy
 for i, strategy in enumerate(df['Strategy']):
