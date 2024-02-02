@@ -22,14 +22,6 @@ prob += lpSum([df.loc[i, 'Returns'] * weights[strategy] for i, strategy in enume
 # Constraint: sum of weights equals 1
 prob += lpSum([weights[strategy] for strategy in df['Strategy']]) == 1
 
-# Additional constraint: limit the exposure to each asset class
-max_exposure_equity = 0.6  # Set your desired limit for equity exposure
-max_exposure_alternatives = 0.4  # Set your desired limit for alternatives exposure
-
-for asset_class in df.columns[2:]:
-    prob += lpSum([df.loc[i, asset_class] * weights[strategy] for i, strategy in enumerate(df['Strategy'])]) <= (
-            max_exposure_equity if asset_class == 'Equity' else max_exposure_alternatives)
-
 # Solve the problem
 prob.solve()
 
