@@ -1,53 +1,41 @@
-def calculate_ideal_position(data):
+import pandas as pd
+from pulp import LpVariable, LpProblem, lpSum, LpMaximize
 
-    df = data.copy()
+# Example data (replace this with your actual data)
+# Assume df is your pandas DataFrame
+df = pd.DataFrame({
+    'Strategy': ['Strategy1', 'Strategy2', 'Strategy3'],
+    'Returns': [0.05, 0.07, 0.06],
+    'AssetClass': ['Equity', 'Alternatives', 'Fixed Income']
+})
 
-    # Calculate rate of change (ROC)
-    df['ROC'] = df['Adj Close'].pct_change()
-    
-    # Define a function to dynamically adjust the window size based on ROC
-    def dynamic_window_size(roc):
-        if (roc < 0.01).all():
-            return 1
-        elif ((0.01 <= roc) & (roc < 0.012)).any():
-            return 2
-        elif ((0.012 <= roc) & (roc < 0.016)).any():
-            return 4
-        else:
-            return 7
-    
-    # Identify peaks and troughs with dynamically adjusted window size
-    df['Peak'] = df['Adj Close'].iloc[argrelextrema(df['Adj Close'].values, comparator=lambda x, y: x > y, order=dynamic_window_size(df['ROC']))[0]]
-    df['Trough'] = df['Adj Close'].iloc[argrelextrema(df['Adj Close'].values, comparator=lambda x, y: x < y, order=dynamic_window_size(df['ROC']))[0]]
-    
-    # Initialize the 'test_signals' list
-    signals = [0] * len(df)
-    
-    # Generate buy and sell signals
-    buy_indices = [df.index.get_loc(idx) for idx in df.index[df['Trough'].notnull()]]
-    sell_indices = [df.index.get_loc(idx) for idx in df.index[df['Peak'].notnull()]]
-    
-    for idx in buy_indices:
-        signals[idx] = 1
-    
-    for idx in sell_indices:
-        signals[idx] = -1
+# Create a linear programming problem
+prob = LpProblem("Portfolio_Optimization", LpMaximize)
 
-    return signals 
+# Define decision variables (weights)
+weights = LpVariable.dicts("Weight", df['Strategy'], 0, 1)
 
+# Objective function: maximize portfolio returns
+prob += lpSum([df.loc[i, 'Returns'] * weights[strategy] for i, strategy in enumerate(df['Strategy'])])
 
+# Constraint: sum of weights equals 1
+prob += lpSum([weights[strategy] for strategy in df['Strategy']]) == 1
 
+# Additional constraint: limit the exposure to each asset class
+max_exposure_equity = 0.6  # Set your desired limit for equity exposure
+max_exposure_alternatives = 0.4  # Set your desired limit for alternatives exposure
 
+for asset_class in set(df['AssetClass']):
+    prob += lpSum([weights[strategy] for i, strategy in enumerate(df['Strategy']) if df.loc[i, 'AssetClass'] == asset_class]) <= (
+            max_exposure_equity if asset_class == 'Equity' else max_exposure_alternatives)
 
-import matplotlib.pyplot as plt
+# Solve the problem
+prob.solve()
 
-data = yf.download('INDIANB.NS', start='2022-05-01', end='2022-12-24')
-data = gen_ind(data)
+# Extract and print the optimized weights
+optimized_weights = {strategy: weights[strategy].varValue for strategy in df['Strategy']}
+print("Optimized Weights:", optimized_weights)
 
-test_signals = neat_run.calculate_ideal_position(data)
-
-# Plot the data with buy and sell signals
-test_daily_returns, test_cumulative_returns, test_final_return = neat_run.calculate_return(data, test_signals)
-adj_close = data['Adj Close']
-print("Cumulative Final Return on Test Data:", test_final_return, " Buy and Hold Return: " + str(adj_close[-1] / adj_close[14] - 1))
-plot.plot(data, test_signals, test_cumulative_returns)
+# Calculate the optimized portfolio returns
+optimized_returns = sum([df.loc[i, 'Returns'] * optimized_weights[strategy] for i, strategy in enumerate(df['Strategy'])])
+print("Optimized Portfolio Returns:", optimized_returns)
