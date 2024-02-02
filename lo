@@ -24,9 +24,7 @@ prob += lpSum([weights[strategy] for strategy in df['Strategy']]) == 1
 
 # Constraints on asset class weights for each strategy
 for i, strategy in enumerate(df['Strategy']):
-    prob += weights[strategy] * df.loc[i, 'Equity'] == 0.6
-    prob += weights[strategy] * df.loc[i, 'Alternatives'] == 0.1
-    prob += weights[strategy] * df.loc[i, 'Fixed Income'] == 0.3
+    prob += weights[strategy] * df.loc[i, 'Equity'] + weights[strategy] * df.loc[i, 'Alternatives'] + weights[strategy] * df.loc[i, 'Fixed Income'] == 1
 
 # Solve the problem
 prob.solve()
