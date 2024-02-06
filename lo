@@ -1,68 +1,28 @@
-import pandas as pd
-from pulp import LpProblem, LpVariable, lpSum, LpMaximize, LpBinary
+import streamlit as st
+import plotly.graph_objects as go
 
-# Create the DataFrame
-df = pd.DataFrame({
-    'Strategy': ['Strategy1', 'Strategy2', 'Strategy3'],
-    'Category': ['B', 'A', 'A'],  # Add the 'Category' column
-    'Returns': [0.08, 0.07, 0.06],
-    'Equity': [0.5, 0.4, 0.6],
-    'Alternatives': [0.4, 0.2, 0.0],
-    'Fixed Income': [0.1, 0.4, 0.4],
-    'Weights': [0.2, 0.2, 0.6],
-    'Sharpe Ratio': [0.5, 0.4, 0.7]
-})
+# Sample data
+labels = ['Category A', 'Category B', 'Category C']
+parent_values = [400, 200, 300]
+child_values = [[100, 200, 100], [50, 100, 50], [75, 125, 100]]
 
-# Create the PuLP linear programming problem
-prob = LpProblem("Portfolio_Optimization", LpMaximize)
+# Create nested pie chart
+fig = go.Figure()
 
-# Define decision variables (weights and binary variables)
-weights = LpVariable.dicts("Weight", df['Strategy'], lowBound=0, upBound=1, cat='Continuous')
-include_strat = LpVariable.dicts("Include", df['Strategy'], cat='Binary')
+for parent, children in zip(parent_values, child_values):
+    fig.add_trace(go.Pie(
+        labels=labels,
+        values=children,
+        name=f'Total: {parent}',
+        hoverinfo='label+percent+name',
+        hole=0.4
+    ))
 
-# Objective function: Maximize returns
-prob += lpSum(weights[strat] * df.loc[df['Strategy'] == strat, 'Returns'].values[0] for strat in df['Strategy']), "Total Returns"
+fig.update_layout(
+    title_text="Nested Pie Chart",
+    annotations=[dict(text='Parent', x=0.18, y=0.5, font_size=20, showarrow=False),
+                 dict(text='Child', x=0.82, y=0.5, font_size=20, showarrow=False)]
+)
 
-# Constraints
-# Constraint on total weights summing to 1
-prob += lpSum(weights[strat] for strat in df['Strategy']) == 1, "Total Weights"
-
-# Constraints on weights for Equity, Alternatives, and Fixed Income
-prob += lpSum(weights[strat] * df.loc[df['Strategy'] == strat, 'Equity'].values[0] for strat in df['Strategy']) >= 0.3, "Min Equity Weight"
-prob += lpSum(weights[strat] * df.loc[df['Strategy'] == strat, 'Alternatives'].values[0] for strat in df['Strategy']) <= 0.3, "Max Alternatives Weight"
-prob += lpSum(weights[strat] * df.loc[df['Strategy'] == strat, 'Fixed Income'].values[0] for strat in df['Strategy']) <= 0.3, "Max Fixed Income Weight"
-
-# Constraint on at least one strategy from category 'A'
-for strat in df[df['Category'] == 'B']['Strategy']:
-    prob += include_strat[strat] == 1, f"At Least One from Category A ({strat})"
-    
-# Ensure that if a strategy is included, its weight is greater than zero
-for strat in df['Strategy']:
-    prob += weights[strat] >= include_strat[strat] * 0.01, f"Include-Weight Relationship ({strat})"
-
-# Constraint on Sharpe ratio
-target_sharpe_ratio = 0.61  # Your target Sharpe ratio
-prob += lpSum(weights[strat] * df.loc[df['Strategy'] == strat, 'Sharpe Ratio'].values[0] for strat in df['Strategy']) == target_sharpe_ratio, "Target Sharpe Ratio"
-
-# Solve the problem
-prob.solve()
-
-# Display the results
-weights_distribution = pd.DataFrame({
-    'Strategy': df['Strategy'],
-    'Weight': [weights[strat].varValue for strat in df['Strategy']],
-})
-
-# Calculate portfolio distribution across asset classes
-portfolio_distribution = pd.DataFrame({
-    'Asset Class': df.columns[2:],
-    'Weight': [sum(weights_distribution['Weight'] * df[asset].values) for asset in df.columns[2:]],
-})
-
-print("Optimal Portfolio Weights:")
-print(weights_distribution)
-
-print("\nPortfolio Distribution Across Asset Classes:")
-print(portfolio_distribution)
-
-print("\nObjective Function (Maximized Returns):", round(prob.objective.value(), 4))
+# Display chart in Streamlit app
+st.plotly_chart(fig)
