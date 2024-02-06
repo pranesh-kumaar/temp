@@ -2,26 +2,21 @@ import streamlit as st
 import plotly.graph_objects as go
 
 # Sample data
-labels = ['Category A', 'Category B', 'Category C']
-parent_values = [400, 200, 300]
-child_values = [[100, 200, 100], [50, 100, 50], [75, 125, 100]]
+labels = ["Parent", "Child 1", "Child 2", "Child 3", "Child 4", "Child 5"]
+parents = ["", "Parent", "Parent", "Parent", "Child 2", "Child 2"]
+values = [10, 20, 30, 40, 50, 60]
 
-# Create nested pie chart
-fig = go.Figure()
-
-for parent, children in zip(parent_values, child_values):
-    fig.add_trace(go.Pie(
-        labels=labels,
-        values=children,
-        name=f'Total: {parent}',
-        hoverinfo='label+percent+name',
-        hole=0.4
-    ))
+# Create sunburst plot
+fig = go.Figure(go.Sunburst(
+    labels=labels,
+    parents=parents,
+    values=values,
+))
 
 fig.update_layout(
-    title_text="Nested Pie Chart",
-    annotations=[dict(text='Parent', x=0.18, y=0.5, font_size=20, showarrow=False),
-                 dict(text='Child', x=0.82, y=0.5, font_size=20, showarrow=False)]
+    margin=dict(t=0, l=0, r=0, b=0),
+    width=700,
+    height=700,
 )
 
 # Display chart in Streamlit app
