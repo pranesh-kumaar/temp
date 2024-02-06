@@ -1,29 +1,22 @@
-import streamlit as st
 import plotly.graph_objects as go
 
-# Sample data
-labels = ["Parent", "Child 1", "Child 2", "Child 3", "Child 4", "Child 5"]
-parents = ["", "Parent", "Parent", "Parent", "Child 2", "Child 2"]
-values = [20, 15, 25, 10, 15, 15]
+# Define data
+labels = ['Parent A', 'Parent B', 'Child']
+parents = ['', '', 'Parent A']
+values = [40, 60, 100]  # Child and parents total 100
 
-# Total value
-total_value = sum(values)
-
-# Normalize values to sum up to 100
-normalized_values = [val * 100 / total_value for val in values]
-
-# Create sunburst plot
+# Create sunburst chart
 fig = go.Figure(go.Sunburst(
     labels=labels,
     parents=parents,
-    values=normalized_values,
+    values=values,
 ))
 
+# Update layout
 fig.update_layout(
-    margin=dict(t=0, l=0, r=0, b=0),
-    width=700,
-    height=700,
+    title="Sunburst Chart with Child and Parents totaling 100",
+    margin=dict(t=40, l=0, r=0, b=0)
 )
 
-# Display chart in Streamlit app
-st.plotly_chart(fig)
+# Show chart
+fig.show()
