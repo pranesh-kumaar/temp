@@ -10,10 +10,11 @@ data = {
 
 df = pd.DataFrame(data)
 
-# Normalize values to ensure the sum of each parent and its children equals 100
-normalized_df = df.groupby('parent')['value'].transform(lambda x: x / x.sum() * 100)
+# Calculate percentages
+total = df['value'].sum()
+df['percentage'] = (df['value'] / total) * 100
 
-df['normalized_value'] = normalized_df
-
-fig = px.sunburst(df, path=['parent', 'child'], values='normalized_value', title='Sunburst Chart')
+fig = px.sunburst(df, path=['parent', 'child'], values='value', title='Asset Allocation',
+                  hover_data=['percentage'], hover_name='child',
+                  labels={'value': 'Value', 'child': 'Asset', 'percentage': 'Percentage (%)'})
 fig.show()
