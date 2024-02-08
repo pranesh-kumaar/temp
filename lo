@@ -1,20 +1,47 @@
 import pandas as pd
-import plotly.express as px
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 
-# Create example DataFrame
+# Assuming your dataset is stored in a DataFrame named 'data'
+# Load your dataset
+# data = pd.read_csv('your_dataset.csv')
+
+# For demonstration, let's create a sample dataset
 data = {
-    'parent': ['A', 'A', 'B', 'B', 'C', 'C'],
-    'child': ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-    'value': [20, 80, 60, 40, 30, 70]
+    'Age': [40, 40, 50, 45, 55, 60, 35, 65],
+    'Net_worth': [10, 100, 20, 30, 200, 150, 5, 250],
+    'Liabilities': [5, 10, 8, 7, 15, 20, 3, 25],
+    'Brokerage': [2, 5, 3, 4, 8, 7, 1, 10],
+    'Investments': [8, 20, 10, 15, 30, 25, 5, 35],
+    'Mortgage': [1, 2, 1, 2, 3, 4, 1, 5]
 }
 
-df = pd.DataFrame(data)
+# Convert the dictionary to DataFrame
+data_df = pd.DataFrame(data)
 
-# Calculate percentages
-total = df['value'].sum()
-df['percentage'] = (df['value'] / total) * 100
+# Selecting only Age and Net Worth columns for clustering
+X = data_df[['Age', 'Net_worth']]
 
-fig = px.sunburst(df, path=['parent', 'child'], values='value', title='Asset Allocation',
-                  hover_data=['parent', 'child', 'percentage'],
-                  labels={'parent': 'Parent', 'child': 'Child', 'value': 'Value', 'percentage': 'Percentage (%)'})
-fig.show()
+# Number of clusters
+num_clusters = 3
+
+# Applying K-means clustering
+kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+kmeans.fit(X)
+
+# Adding cluster labels to the dataset
+data_df['Cluster'] = kmeans.labels_
+
+# Visualizing the clusters
+plt.scatter(data_df['Age'], data_df['Net_worth'], c=data_df['Cluster'], cmap='viridis')
+plt.xlabel('Age')
+plt.ylabel('Net Worth')
+plt.title('K-means Clustering')
+plt.colorbar(label='Cluster')
+plt.show()
+
+# Analyzing popular products in each cluster
+cluster_summary = data_df.groupby('Cluster').mean()
+print(cluster_summary)
+
+# You can further analyze popular products in each cluster based on mean values or any other metric
