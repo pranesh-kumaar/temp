@@ -1,47 +1,11 @@
-import pandas as pd
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-
-# Assuming your dataset is stored in a DataFrame named 'data'
-# Load your dataset
-# data = pd.read_csv('your_dataset.csv')
-
-# For demonstration, let's create a sample dataset
-data = {
-    'Age': [40, 40, 50, 45, 55, 60, 35, 65],
-    'Net_worth': [10, 100, 20, 30, 200, 150, 5, 250],
-    'Liabilities': [5, 10, 8, 7, 15, 20, 3, 25],
-    'Brokerage': [2, 5, 3, 4, 8, 7, 1, 10],
-    'Investments': [8, 20, 10, 15, 30, 25, 5, 35],
-    'Mortgage': [1, 2, 1, 2, 3, 4, 1, 5]
-}
-
-# Convert the dictionary to DataFrame
-data_df = pd.DataFrame(data)
-
-# Selecting only Age and Net Worth columns for clustering
-X = data_df[['Age', 'Net_worth']]
-
-# Number of clusters
-num_clusters = 3
-
-# Applying K-means clustering
-kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-kmeans.fit(X)
-
-# Adding cluster labels to the dataset
-data_df['Cluster'] = kmeans.labels_
-
-# Visualizing the clusters
-plt.scatter(data_df['Age'], data_df['Net_worth'], c=data_df['Cluster'], cmap='viridis')
-plt.xlabel('Age')
-plt.ylabel('Net Worth')
-plt.title('K-means Clustering')
-plt.colorbar(label='Cluster')
-plt.show()
-
-# Analyzing popular products in each cluster
-cluster_summary = data_df.groupby('Cluster').mean()
-print(cluster_summary)
-
-# You can further analyze popular products in each cluster based on mean values or any other metric
+table = pd.DataFrame()
+for message in reversed(messages):
+    subject = message.Subject
+    body = message.HTMLBody
+    html_body = BeautifulSoup(body,"lxml")
+    html_tables = html_body.find_all('table')
+    # for table in html_tables:
+    #      if table.findParent("table") is None:
+    #             print str(table)
+    df = pd.read_html(str(html_tables))[2]
+    table = table.append(df)
