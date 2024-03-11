@@ -1,11 +1,41 @@
-table = pd.DataFrame()
-for message in reversed(messages):
-    subject = message.Subject
-    body = message.HTMLBody
-    html_body = BeautifulSoup(body,"lxml")
-    html_tables = html_body.find_all('table')
-    # for table in html_tables:
-    #      if table.findParent("table") is None:
-    #             print str(table)
-    df = pd.read_html(str(html_tables))[2]
-    table = table.append(df)
+import cv2
+import numpy as np
+
+# Read the main image
+main_image = cv2.imread('main_image.jpg')
+gray_main = cv2.cvtColor(main_image, cv2.COLOR_BGR2GRAY)
+
+# Read the template image
+template = cv2.imread('template.jpg', cv2.IMREAD_GRAYSCALE)
+
+# Match the template
+result = cv2.matchTemplate(gray_main, template, cv2.TM_CCOEFF_NORMED)
+
+# Define a threshold
+threshold = 0.8
+
+# Find locations where the match is found
+loc = np.where(result >= threshold)
+locations = list(zip(*loc[::-1]))
+
+# Perform non-maximum suppression
+rectangles = []
+for loc in locations:
+    rectangles.append([loc[0], loc[1], template.shape[1], template.shape[0]])
+rectangles, weights = cv2.groupRectangles(rectangles, groupThreshold=1, eps=0.5)
+
+# Draw rectangles around the matched templates and store the locations
+match_locations = []
+for (x, y, w, h) in rectangles:
+    cv2.rectangle(main_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    match_locations.append((x, y))
+
+# Print the match locations
+print("Match Locations:")
+for loc in match_locations:
+    print(loc)
+
+# Display the result
+cv2.imshow('Result', main_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
