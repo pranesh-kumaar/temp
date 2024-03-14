@@ -1,41 +1,234 @@
-import cv2
+import indicators
+
+# def gen_ind(data):
+    
+#     indicators.SMA(data,14)
+#     indicators.EMA(data,14)
+#     indicators.SMA(data,10)
+#     indicators.EMA(data,10)
+
+#     indicators.MOM(data,14)
+#     indicators.ROC(data,14)
+#     indicators.ATR(data,14)
+#     indicators.BBANDS(data,14)
+#     indicators.MOM(data,10)
+#     indicators.ROC(data,10)
+#     indicators.ATR(data,10)
+#     indicators.BBANDS(data,10)
+
+#     # diff_columns = [(col1, col2) for col1 in data.columns for col2 in data.columns if col1 != col2]
+#     # for col1, col2 in diff_columns:
+#     #     new_col_name = f'{col1}_{col2}_diff'
+#     #     data[new_col_name] = data[col1] - data[col2]
+    
+#     indicators.PPSR(data)
+#     indicators.PPSRFIBO(data)
+#     indicators.STOK(data)
+#     indicators.STO(data,14)
+#     indicators.TRIX(data,14)
+#     indicators.VORTEX(data,14)
+#     # indicators.KST(data,14)
+#     indicators.RSI(data,14)
+#     indicators.TSI(data, 25, 13)
+#     indicators.ACCDIST(data,14)
+#     indicators.CHAIKIN(data)
+#     indicators.MFI(data,14)
+#     indicators.OBV(data,14)
+#     indicators.FORCE(data,14)
+#     indicators.EOM(data,14)
+#     indicators.CCI(data,14)
+#     indicators.COPP(data,14)
+#     indicators.KELCH(data,14)
+#     indicators.ULTOSC(data)
+#     # indicators.DONCH(data,14)
+#     indicators.ADX(data,14,20)
+#     indicators.MACD(data)
+#     indicators.MASS(data)
+#     data = data.dropna()
+#     # for x in ['SMA','EMA','MOM','ROC']:
+#         # data[x+'_diff'] = data[x+'_14'] - data[x+'_10']
+#     # for x in ['Open','High','Low','Close', 'SMA_14','EMA_14','MOM_14','ROC_14', 'SMA_10','EMA_10','MOM_10','ROC_10']: #'KELCHmiddle_14','KELCHup_14','KELCHdown_14', 'ATR_14','PP','S1','S2','S3','R1','R2','R3','R1fibo','S1fibo','R2fibo','S2fibo','R3fibo','S3fibo'
+#     #     data.loc[:, x+'_norm'] = data['Adj Close'] - data[x] 
+#         # data[x+'_norm'] = data['Adj Close'] - data[x]
+#         # data = data.drop(x, axis=1)
+
+#     # data = data.dropna()
+    
+#     return data
+
+import pandas as pd
 import numpy as np
 
-# Read the main image
-main_image = cv2.imread('main_image.jpg')
-gray_main = cv2.cvtColor(main_image, cv2.COLOR_BGR2GRAY)
+# Assuming 'indicators' is a module you've defined that includes
+# SMA, EMA, MOM, ROC, ATR, BBANDS, PPSR, PPSRFIBO, STOK, STO, TRIX,
+# VORTEX, RSI, TSI, ACCDIST, CHAIKIN, MFI, OBV, FORCE, EOM, CCI, COPP,
+# KELCH, ULTOSC, ADX, MACD, MASS functions.
 
-# Read the template image
-template = cv2.imread('template.jpg', cv2.IMREAD_GRAYSCALE)
+def gen_ind_(data):
+    # Apply your existing indicators
+    indicator_functions = [
+        indicators.SMA, indicators.EMA, indicators.MOM, indicators.ROC,
+        indicators.ATR, indicators.BBANDS, indicators.PPSR, indicators.PPSRFIBO,
+        indicators.STOK, indicators.STO, indicators.TRIX, indicators.VORTEX,
+        indicators.RSI, indicators.ACCDIST, indicators.CHAIKIN,
+        indicators.MFI, indicators.OBV, indicators.FORCE, indicators.EOM,
+        indicators.CCI, indicators.COPP, indicators.KELCH, indicators.ULTOSC,
+        indicators.MACD, indicators.MASS
+    ]
+    
+    periods = [14, 10, 7]  # Define periods you're interested in
 
-# Match the template
-result = cv2.matchTemplate(gray_main, template, cv2.TM_CCOEFF_NORMED)
+    # Apply each indicator function with each period
+    for func in indicator_functions:
+        for period in periods:
+            try:
+                func(data, period)
+            except TypeError:
+                # Some indicators might not accept a period argument
+                func(data)
 
-# Define a threshold
-threshold = 0.8
+    indicators.TSI(data, 25, 13)
+    indicators.ADX(data,14,20)
 
-# Find locations where the match is found
-loc = np.where(result >= threshold)
-locations = list(zip(*loc[::-1]))
+    data = data.dropna()
 
-# Perform non-maximum suppression
-rectangles = []
-for loc in locations:
-    rectangles.append([loc[0], loc[1], template.shape[1], template.shape[0]])
-rectangles, weights = cv2.groupRectangles(rectangles, groupThreshold=1, eps=0.5)
+    price_related_terms = ['Open', 'Close', 'High', 'Low', 'EMA', 'SMA', 'MOM', 'ROC', 'S1', 'S2', 'S3', 'R1', 'R2', 'R3', 'R1fibo', 'S1fibo', 'R2fibo', 'S2fibo', 'R3fibo', 'S3fibo']
+    
+    # Calculate differences between specified fields
+    filtered_columns = [col for col in data.columns if any(term in col for term in price_related_terms)]
+    diff_columns = [(col1, col2) for col1 in filtered_columns for col2 in filtered_columns if col1 != col2]
+    for col1, col2 in diff_columns:
+        new_col_name = f'{col1}_{col2}_diff'
+        data[new_col_name] = data[col1] - data[col2]
 
-# Draw rectangles around the matched templates and store the locations
-match_locations = []
-for (x, y, w, h) in rectangles:
-    cv2.rectangle(main_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    match_locations.append((x, y))
+    data = data.dropna()
 
-# Print the match locations
-print("Match Locations:")
-for loc in match_locations:
-    print(loc)
+    roc_periods = [1,3,7]  # 1-day to 10-day ROC as an example, adjust as needed
 
-# Display the result
-cv2.imshow('Result', main_image)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    for period in roc_periods:
+        for col in data.columns:
+            roc_col_name = f'{col}_ROC_{period}d'
+            data[roc_col_name] = data[col].pct_change(periods=period)
+
+    data = data.dropna()
+
+    return data
+
+####################################################################################################################################
+
+import numpy as np
+import pandas as pd
+from multiprocessing import Pool
+
+# Assuming 'indicators' module and all necessary indicator functions are defined and imported
+
+def calculate_diff(args):
+    data, col1, col2 = args
+    new_col_name = f'{col1}_{col2}_diff'
+    data[new_col_name] = data[col1] - data[col2]
+    return data[[new_col_name]]
+
+def calculate_roc(args):
+    data, col, period = args
+    roc_col_name = f'{col}_ROC_{period}d'
+    data[roc_col_name] = data[col].pct_change(periods=period)
+    return data[[roc_col_name]]
+
+def parallel_process(data, function, tasks):
+    with Pool() as pool:
+        results = pool.map(function, tasks)
+    for result in results:
+        data[result.columns[0]] = result
+    return data
+
+def gen_ind(data):
+    indicator_functions = [
+        indicators.SMA, indicators.EMA, indicators.MOM, indicators.ROC,
+        indicators.ATR, indicators.BBANDS, indicators.PPSR, indicators.PPSRFIBO,
+        indicators.STOK, indicators.STO, indicators.TRIX, indicators.VORTEX,
+        indicators.RSI,
+        indicators.MFI,
+        indicators.CCI, indicators.COPP, indicators.KELCH, indicators.ULTOSC,
+        indicators.MACD, indicators.MASS
+    ]
+    
+    periods = [14, 10, 7]  # Define periods you're interested in
+
+    # Apply each indicator function with each period
+    for func in indicator_functions:
+        for period in periods:
+            try:
+                func(data, period)
+            except TypeError:
+                # Some indicators might not accept a period argument
+                func(data)
+
+    indicators.TSI(data, 25, 13)
+    indicators.ADX(data,14,20)
+    indicators.ADX(data,7,10)
+
+    data = data.loc[:, (data != 0).any(axis=0)]
+    epsilon = 1e-5
+    cols_to_drop = [col for col in data.columns if np.all(np.abs(data[col]) <= epsilon)]
+    data = data.drop(columns=cols_to_drop)
+
+    data = data.dropna()
+
+    # Calculate ROC for specified periods using multiprocessing
+    # roc_periods = [1,3,7]
+    # def calculate_roc(data, column, period):
+    #     # Shift the series to get the value 'period' steps ago
+    #     shifted_series = data[column].shift(period)
+    #     # Calculate the ROC manually: ((current - shifted) / shifted) * 100
+    #     roc = ((data[column] - shifted_series) / shifted_series)
+    #     return roc
+    
+    # # Applying ROC calculation across DataFrame columns
+    # def apply_roc_to_df(data, roc_periods):
+    #     for period in roc_periods:
+    #         for col in data.columns:
+    #             # Skip non-numeric columns to avoid errors
+    #             if pd.api.types.is_numeric_dtype(data[col]):
+    #                 roc_col_name = f'{col}_ROC_{period}d'
+    #                 data[roc_col_name] = calculate_roc(data, col, period)
+    #     return data
+
+    # data = apply_roc_to_df(data, roc_periods)
+
+    # data = data.loc[:, (data != 0).any(axis=0)]
+    # epsilon = 1e-5
+    # cols_to_drop = [col for col in data.columns if np.all(np.abs(data[col]) <= epsilon)]
+    # data = data.drop(columns=cols_to_drop)
+
+    # def cap_inf_with_col_max_min(df):
+    #     for col in df.columns:
+    #         # Get finite max and min of the column, ignoring 'inf' and '-inf'
+    #         finite_max = df[col][df[col] != np.inf].max()
+    #         finite_min = df[col][df[col] != -np.inf].min()
+            
+    #         # Replace 'inf' with max and '-inf' with min
+    #         df[col].replace([np.inf, -np.inf], [finite_max, finite_min], inplace=True)
+    
+    # # Apply the function to your DataFrame
+    # cap_inf_with_col_max_min(data)
+        
+    # data = data.dropna()
+
+    # Price Related Terms Difference
+    price_related_terms = ['Open', 'Close', 'High', 'Low', 'EMA', 'SMA', 'S1', 'S2', 'S3', 'R1', 'R2', 'R3', 'R1fibo', 'S1fibo', 'R2fibo', 'S2fibo', 'R3fibo', 'S3fibo', 'KELCH']
+    
+    # Calculate differences using multiprocessing
+    filtered_columns = [col for col in data.columns if any(term in col for term in price_related_terms)]
+    filtered_columns = [col for col in filtered_columns if '_ROC_' not in col]
+    diff_columns = [(data.copy(), col1, col2) for col1 in filtered_columns for col2 in filtered_columns if col1 != col2]
+    data = parallel_process(data, calculate_diff, diff_columns)
+
+    data = data.loc[:, (data != 0).any(axis=0)]
+    epsilon = 1e-5
+    cols_to_drop = [col for col in data.columns if np.all(np.abs(data[col]) <= epsilon)]
+    data = data.drop(columns=cols_to_drop)
+
+    data = data.dropna()
+
+    return data
+
