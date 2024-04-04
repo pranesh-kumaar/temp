@@ -1,15 +1,20 @@
-Subject: Request for Leave Due to Grandfather's Passing
+button = ttk.Button(tab1, text = "Submit", style="Accent.TButton", command =  threading.Thread(target=submit_0).start)
 
-Dear [Manager's Name],
+def submit_0():
+        
+        pythoncom.CoInitialize()
+        sid = SID_entry.get()
+        name = name_entry.get()
+        market = Market_entry.get()
+        advisor = advisor_entry.get()
+        deliverable = dl.get()
+        other = other_entry.get()
+        client_name = client_entry.get()
+        value = value_entry.get()
+        activity = dq.get()
+        comment = comment_entry.get()
 
-I hope this email finds you well. I am writing to inform you of some unfortunate news regarding my family. My grandfather passed away recently, and as a result, I will need to take some time off to attend his funeral and be with my family during this difficult time.
-
-I understand the importance of my responsibilities at work, and I assure you that I will do everything I can to ensure that my tasks are covered during my absence. I am willing to delegate my duties and provide any necessary information to ensure a smooth transition in my absence.
-
-I plan to be away from [start date] to [end date]. However, I am flexible and can adjust my leave dates as needed based on any pressing work commitments.
-
-I apologize for any inconvenience my absence may cause, and I appreciate your understanding and support during this challenging time.
-
-Thank you for considering my request. Please let me know if you need any further information or if there are any additional steps I need to take regarding my leave.
-
-Sincerely,
+        data = [name, sid, market, advisor, deliverable, other, client_name, value, activity, comment]
+        
+        fill_form(data, 0)
+        threading.Thread(target=submit_0).join
