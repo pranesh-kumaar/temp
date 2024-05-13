@@ -1,22 +1,9 @@
-    gmm_data = data
-    # selected_columns = ['Age Group', 'Wealth Group', 'Cash Group', 'Liabilities Group']
-    selected_columns = ["Age", "Client Assets + Credit (est.)", "Cash Balance (est.)", "Liabilities (est.)", "Client Directed","Brokerage", "Lending", "Mortgage", "Deposits",'Asia ex-Japan Equity', 'Balanced', 'Cash & Short Term', 'Concentrated & Other Equity', 'Diversified Strategies', 'EAFE Equity', 'Emerging Market Equity', 'European Large Cap Equity', 'European Small Cap Equity', 'Foreign Exchange & Non-USD Fixed Income', 'Global Equity', 'Global Fixed Income', 'Hard Assets', 'Hedge Funds', 'Japanese Large Cap Equity', 'Japanese Small Cap Equity', 'Non-US Fixed Income', 'Oil & Gas', 'Other', 'Private Investments', 'Real Estate', 'Real Estate & Infrastructure', 'US All Cap Equity', 'US Fixed Income', 'US Large Cap Equity', 'US Mid Cap Equity', 'US Small Cap Equity', 'US Smid(Small/Mid) Cap Equity']
-    # scaler.fit(gmm_data[selected_columns])
-    selected_data = gmm_data[selected_columns].fillna(0)
-    scaled_data = scaler.fit_transform(selected_data)
-    n_components_range = range(1,11)
-    bic_scores = []
-    for n in n_components_range:
-        gmm = GaussianMixture(n_components = n, random_state = 42)
-        gmm.fit(scaled_data)
-        bic_scores.append(gmm.bic(scaled_data))
-        
-        ideal_number = n_components_range[np.argmin(bic_scores)]
-        tsne = TSNE(n_components = 2, perplexity = 30, n_iter = 300)
-        X = tsne.fit_transform(scaled_data)
-        gmm = GaussianMixture(n_components=optimal_k, random_state=42) #change to ideal number
-        gmm.fit(X)
-        cluster_labels = gmm.predict(X)
-        x = X[:,0]
-        y = X[:,1]
-        gmm_data['Cluster'] = cluster_labels
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming 'gmm_data' already has the 'Cluster' column
+for col in selected_columns:
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='Cluster', y=col, data=gmm_data)
+    plt.title(f'Distribution of {col} by Cluster')
+    plt.show()
