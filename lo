@@ -1,9 +1,7 @@
-import seaborn as sns
-import matplotlib.pyplot as plt
+profile_attributes = transformed_df.groupby('Profile Name')['Attribute'].apply(list).to_dict()
 
-# Assuming 'gmm_data' already has the 'Cluster' column
-for col in selected_columns:
-    plt.figure(figsize=(10, 6))
-    sns.boxplot(x='Cluster', y=col, data=gmm_data)
-    plt.title(f'Distribution of {col} by Cluster')
-    plt.show()
+link_data = []
+for profile, attributes in profile_attributes.items():
+    for other_profile, other_attributes in profile_attributes.items():
+        if profile != other_profile and set(attributes) == set(other_attributes):
+            link_data.append({'Profile Name': profile, 'Linked Profile': other_profile})
