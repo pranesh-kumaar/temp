@@ -1,7 +1,7 @@
-profile_attributes = transformed_df.groupby('Profile Name')['Attribute'].apply(list).to_dict()
-
-link_data = []
-for profile, attributes in profile_attributes.items():
-    for other_profile, other_attributes in profile_attributes.items():
-        if profile != other_profile and set(attributes) == set(other_attributes):
-            link_data.append({'Profile Name': profile, 'Linked Profile': other_profile})
+comment_entry = tk.Text(tab1, relief = 'flat', highlightbackground='grey',  highlightthickness=1, borderwidth=1, pady = 5)
+scroll = tk.Scrollbar(comment_entry) 
+comment_entry.configure(yscrollcommand=scroll.set) 
+comment_entry.pack(side=tk.LEFT) 
+scroll.config(command=comment_entry.yview) 
+scroll.pack(side=tk.RIGHT, fill=tk.Y) 
+comment_entry.place(x=250,y=525, height = 120, width = 280)
