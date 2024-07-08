@@ -1,7 +1,10 @@
-comment_entry = tk.Text(tab1, relief = 'flat', highlightbackground='grey',  highlightthickness=1, borderwidth=1, pady = 5)
-scroll = tk.Scrollbar(comment_entry) 
-comment_entry.configure(yscrollcommand=scroll.set) 
-comment_entry.pack(side=tk.LEFT) 
-scroll.config(command=comment_entry.yview) 
-scroll.pack(side=tk.RIGHT, fill=tk.Y) 
-comment_entry.place(x=250,y=525, height = 120, width = 280)
+Points to Follow:
+To discuss What all I have worked upon. 
+Using AI to cluster the clients, and find patterns of investment. 
+
+Using AI to automatically find points of trade from a data model.
+
+First use Neuro Evolution for Augmenting Topologies to find Neural Nets that can trade. 
+Second find the best ones that makes reasonable gains.
+Use this to train a second set of nets that will be trained to choose the right neural net to trade.
+Combining these two, I have built a model, that could trade and generate profits.
