@@ -1,1 +1,13 @@
-https://www.ifbappliances.com/diva-aqua-bxs?region_id=10560048&utm_source=google&utm_medium=google_shopping&utm_campaign=IFB_Pmax_Shopping_WM_FL_P1&gad_source=1&gclid=CjwKCAjw0aS3BhA3EiwAKaD2ZefedirlpNDK-fd8ZPzRZCcijMBZpUb00pnByqBg5K5Gvxm39JSLmxoC97AQAvD_BwE
+base_url = 'https://data.sec.gov/submissions/CIK0000320193.json'
+response = requests.get(base_url, headers={'User-Agent': 'Mozilla/5.0'})
+data = response.json()
+print(data)
+
+print (len(data['filings']['recent']['accessionNumber']))
+print (len(data['filings']['recent']['primaryDocument']))
+links = []
+for x in range(len(data['filings']['recent']['accessionNumber'])) :
+    accession_number = data['filings']['recent']['accessionNumber'][x].replace('-','')
+    document_id = data['filings']['recent']['primaryDocument'][x]
+    link = f'https://www.sec.gov/Archives/edgar/data/320193/{accession_number}/{document_id}' #0000019617 320193
+    links.append(link)
