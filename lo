@@ -11,3 +11,5 @@ for x in range(len(data['filings']['recent']['accessionNumber'])) :
     document_id = data['filings']['recent']['primaryDocument'][x]
     link = f'https://www.sec.gov/Archives/edgar/data/320193/{accession_number}/{document_id}' #0000019617 320193
     links.append(link)
+
+https://www.sec.gov/Archives/edgar/data/19617/000122520821005939/xslF345X03/doc4.xml
