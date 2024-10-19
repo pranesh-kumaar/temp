@@ -1,15 +1,102 @@
-base_url = 'https://data.sec.gov/submissions/CIK0000320193.json'
-response = requests.get(base_url, headers={'User-Agent': 'Mozilla/5.0'})
-data = response.json()
-print(data)
+Sub GetEDGARDataByAlphabet()
+   Dim i As Integer
+   Dim pageNum As Integer
+   Dim queryRange As Range
+   Dim qt As QueryTable
+   Dim lastRow As Long
+   Dim firstQuery As Boolean
+   Dim stopTextFound As Boolean
+   Dim dataRange As Range
+   Dim cell As Range
+   Dim alphabet As Variant ' <--- Declare alphabet as Variant
+   Dim sheetName As String
+   Dim ws As Worksheet
+   Dim url As String
+   ' Array of alphabets and non-alphabetic character category
+   Dim alphabets As Variant
+   alphabets = Array("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Non-Alphabetic")
+   ' Initialize the progress UserForm
+   frmProgress.Show vbModeless ' Show the progress UserForm
+   ' Loop through each letter in the alphabet array
+   For Each alphabet In alphabets ' No type declaration error here because it's Variant
+       ' Initialize/reset for each new alphabet
+       firstQuery = True ' Track the first query to include headers
+       stopTextFound = False ' Flag to stop when final page text is detected
+       i = 0 ' Reset the page number for each alphabet
+       ' Create or clear the sheet for the current alphabet
+       sheetName = alphabet ' Set sheet name based on the current alphabet
+       On Error Resume Next
+       Set ws = ThisWorkbook.Sheets(sheetName)
+       On Error GoTo 0
+       If ws Is Nothing Then
+           ' If sheet doesn't exist, create it
+           Set ws = ThisWorkbook.Sheets.Add
+           ws.Name = sheetName
+       Else
+           ' If sheet exists, clear its content
+           ws.Cells.Clear
+       End If
+       ' Set the initial range to start placing data in the new sheet
+       Set queryRange = ws.Range("A1")
+       ' Loop to get all pages of data for the current alphabet
+       Do
+           pageNum = i * 100 ' Adjust to get 100 records per page
+           ' Build the URL with the current alphabet
+           If alphabet = "Non-Alphabetic" Then
+               url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&State=CO&owner=include&match=starts-with&start=" & pageNum & "&count=100&hidefilings=0&company=%25"
+           Else
+               url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&State=CO&owner=include&match=starts-with&start=" & pageNum & "&count=100&hidefilings=0&company=" & alphabet
+           End If
+           ' Update progress on the UserForm
+           frmProgress.lblStatus.Caption = "Fetching page " & i + 1 & " for " & alphabet
+           DoEvents ' Allow UserForm to update
+           ' Create a new query table in the target range
+           Set qt = ws.QueryTables.Add(Connection:="URL;" & url, Destination:=queryRange)
+           ' Set properties for the query table
+           With qt
+               .BackgroundQuery = False
+               .TablesOnlyFromHTML = True
+               ' Include headers only for the first query
+               If firstQuery Then
+                   .RefreshStyle = xlInsertEntireRows ' Include headers in the first query
+               Else
+                   .RefreshStyle = xlOverwriteCells ' Overwrite and avoid inserting headers in subsequent queries
+                   .AdjustColumnWidth = False ' Keep column widths fixed after the first query
+               End If
+               .Refresh BackgroundQuery:=False ' Perform the query and insert data
+           End With
+           ' Mark firstQuery as False after the first iteration
+           firstQuery = False
+           ' Find the last used row after the query is refreshed
+           lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
+           ' Check for stop condition by searching for specific text in the new data
+           If InStr(queryRange.Value, "U.S. Securities & Exchange Commission") > 0 Then
+               stopTextFound = True ' Set flag to stop the loop
+           End If
+           ' Move the range down to the next empty cell for the next query result
+           Set queryRange = ws.Cells(lastRow + 1, 1)
+           ' Increment the counter for the next page
+           i = i + 1
+       Loop Until stopTextFound
+       ' After the loop completes, clean up the sheet (remove unwanted rows)
+       ws.Range("A1:A" & lastRow).SpecialCells(xlCellTypeBlanks).EntireRow.Delete
+       ws.Range("B:B").EntireColumn.Insert Shift:=xlToRight
+       ws.Range("B1").Value = "Full CIK"
+       ws.Range("A1").Font.Bold = True
+       ws.Range("B2:B" & lastRow).FormulaR1C1 = "=CONCAT(""CIK"",REPT(0,10-LEN(RC[-1])),RC[-1])"
+       ' Define the range where data was inserted
+       Set dataRange = ws.Range("A2:D" & lastRow)
+       ' Loop through each cell in the range to check for "CIK" and delete the corresponding row
+       For Each cell In dataRange
+           If cell.Value = "CIK" Or cell.Value = "CIK0000000000" Or cell.Value = "U.S. Securities & Exchange Commission" Or cell.Value = "Home | Search the Next-Generation EDGAR System | Previous Page" Then
+               cell.EntireRow.Delete
+           End If
+       Next cell
+       ' Clear the reference to the sheet
+       Set ws = Nothing
+   Next alphabet
+   ' Close the UserForm when done
+   Unload frmProgress
+   MsgBox "Data import complete for all alphabets!"
+End Sub
 
-print (len(data['filings']['recent']['accessionNumber']))
-print (len(data['filings']['recent']['primaryDocument']))
-links = []
-for x in range(len(data['filings']['recent']['accessionNumber'])) :
-    accession_number = data['filings']['recent']['accessionNumber'][x].replace('-','')
-    document_id = data['filings']['recent']['primaryDocument'][x]
-    link = f'https://www.sec.gov/Archives/edgar/data/320193/{accession_number}/{document_id}' #0000019617 320193
-    links.append(link)
-
-https://www.sec.gov/Archives/edgar/data/19617/000122520821005939/xslF345X03/doc4.xml
