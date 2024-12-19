@@ -1,0 +1,57 @@
+import pandas as pd
+from hmmlearn import hmm
+from ta.momentum import RSIIndicator, StochasticOscillator
+from ta.trend import MACD, ADXIndicator
+from ta.volatility import BollingerBands
+
+# Assuming 'data' is your DataFrame loaded from FactSet
+data = result
+
+# If your data is already indexed by 'id' and 'date', you can skip setting the index
+# Ensure the data is sorted by date
+data.sort_index(level='date', inplace=True)
+# Remove rows where 'fp_volume' is zero
+data = data[data['fp_volume'] != 0]
+
+# Calculate technical indicators
+data['RSI'] = RSIIndicator(data['fp_close_price']).rsi()
+data['Stochastic'] = StochasticOscillator(data['fp_high_price'], data['fp_low_price'], data['fp_close_price']).stoch()
+macd = MACD(data['fp_close_price'])
+data['MACD'] = macd.macd()
+data['MACD_Signal'] = macd.macd_signal()
+adx = ADXIndicator(data['fp_high_price'], data['fp_low_price'], data['fp_close_price'])
+data['ADX'] = adx.adx()
+bb = BollingerBands(data['fp_close_price'])
+data['Volatility'] = bb.bollinger_hband() - bb.bollinger_lband()
+
+# Drop NaN values
+data.dropna(inplace=True)
+data['MACD_HIST'] = data['MACD'] - data['MACD_Signal']
+
+# Prepare observations
+observations = data[['RSI','Stochastic']].values #'RSI', 'Stochastic', 'MACD', 'MACD_Signal', 'ADX', 'Volatility'
+
+# Define and train the HMM
+model = hmm.GaussianHMM(n_components=2, covariance_type="tied", n_iter=10000)
+model.fit(observations)
+
+# Predict hidden states
+hidden_states = model.predict(observations)
+
+# Add hidden states to the data
+data['Hidden_State'] = hidden_states
+
+# Print the first few rows with hidden states
+# display(data)
+
+# Optionally, plot the hidden states
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(15, 8))
+plt.plot(data.index.get_level_values('date'), data['fp_close_price'], label='Close Price')
+plt.scatter(data.index.get_level_values('date'), data['fp_close_price'], c=hidden_states, cmap='viridis', label='Hidden State')
+plt.title('Stock Price with Hidden States')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.legend()
+plt.show()
