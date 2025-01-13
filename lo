@@ -76,6 +76,7 @@ predicted_states = []
 global first_mapped
 def figure_hidden_states(data_, covar_type, initial_window=252, similarity_threshold=0.8):
     # Add technical indicators
+    global len_data
     len_data = data_.copy()
     len_data['RSI'] = RSIIndicator(len_data['Adj Close']).rsi()
     len_data['Stochastic'] = StochasticOscillator(len_data['High'], len_data['Low'], len_data['Adj Close']).stoch()
@@ -88,6 +89,8 @@ def figure_hidden_states(data_, covar_type, initial_window=252, similarity_thres
     j = 0
     MAX_ATTEMPTS = 100
     for i in range(initial_window+(len(data_)-len(len_data)), len(data_)+1):
+
+        display (i)
 
         max_reached = 0
         # Expanding rolling window
@@ -250,7 +253,7 @@ def figure_hidden_states(data_, covar_type, initial_window=252, similarity_thres
 # Download data
 ticker = 'NIFTYIETF'
 # ticker = 'NVDA'
-data_ = download(ticker, start='2023-10-01', end='2025-01-12')
+data_ = download(ticker, start='2023-11-01', end='2025-01-12')
 
 # # Generate hidden states using rolling prediction
 data_ = figure_hidden_states(data_, covar_type='full', initial_window=252, similarity_threshold=0.5)
