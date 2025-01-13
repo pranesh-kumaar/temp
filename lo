@@ -1,102 +1,266 @@
-Sub GetEDGARDataByAlphabet()
-   Dim i As Integer
-   Dim pageNum As Integer
-   Dim queryRange As Range
-   Dim qt As QueryTable
-   Dim lastRow As Long
-   Dim firstQuery As Boolean
-   Dim stopTextFound As Boolean
-   Dim dataRange As Range
-   Dim cell As Range
-   Dim alphabet As Variant ' <--- Declare alphabet as Variant
-   Dim sheetName As String
-   Dim ws As Worksheet
-   Dim url As String
-   ' Array of alphabets and non-alphabetic character category
-   Dim alphabets As Variant
-   alphabets = Array("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Non-Alphabetic")
-   ' Initialize the progress UserForm
-   frmProgress.Show vbModeless ' Show the progress UserForm
-   ' Loop through each letter in the alphabet array
-   For Each alphabet In alphabets ' No type declaration error here because it's Variant
-       ' Initialize/reset for each new alphabet
-       firstQuery = True ' Track the first query to include headers
-       stopTextFound = False ' Flag to stop when final page text is detected
-       i = 0 ' Reset the page number for each alphabet
-       ' Create or clear the sheet for the current alphabet
-       sheetName = alphabet ' Set sheet name based on the current alphabet
-       On Error Resume Next
-       Set ws = ThisWorkbook.Sheets(sheetName)
-       On Error GoTo 0
-       If ws Is Nothing Then
-           ' If sheet doesn't exist, create it
-           Set ws = ThisWorkbook.Sheets.Add
-           ws.Name = sheetName
-       Else
-           ' If sheet exists, clear its content
-           ws.Cells.Clear
-       End If
-       ' Set the initial range to start placing data in the new sheet
-       Set queryRange = ws.Range("A1")
-       ' Loop to get all pages of data for the current alphabet
-       Do
-           pageNum = i * 100 ' Adjust to get 100 records per page
-           ' Build the URL with the current alphabet
-           If alphabet = "Non-Alphabetic" Then
-               url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&State=CO&owner=include&match=starts-with&start=" & pageNum & "&count=100&hidefilings=0&company=%25"
-           Else
-               url = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&State=CO&owner=include&match=starts-with&start=" & pageNum & "&count=100&hidefilings=0&company=" & alphabet
-           End If
-           ' Update progress on the UserForm
-           frmProgress.lblStatus.Caption = "Fetching page " & i + 1 & " for " & alphabet
-           DoEvents ' Allow UserForm to update
-           ' Create a new query table in the target range
-           Set qt = ws.QueryTables.Add(Connection:="URL;" & url, Destination:=queryRange)
-           ' Set properties for the query table
-           With qt
-               .BackgroundQuery = False
-               .TablesOnlyFromHTML = True
-               ' Include headers only for the first query
-               If firstQuery Then
-                   .RefreshStyle = xlInsertEntireRows ' Include headers in the first query
-               Else
-                   .RefreshStyle = xlOverwriteCells ' Overwrite and avoid inserting headers in subsequent queries
-                   .AdjustColumnWidth = False ' Keep column widths fixed after the first query
-               End If
-               .Refresh BackgroundQuery:=False ' Perform the query and insert data
-           End With
-           ' Mark firstQuery as False after the first iteration
-           firstQuery = False
-           ' Find the last used row after the query is refreshed
-           lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
-           ' Check for stop condition by searching for specific text in the new data
-           If InStr(queryRange.Value, "U.S. Securities & Exchange Commission") > 0 Then
-               stopTextFound = True ' Set flag to stop the loop
-           End If
-           ' Move the range down to the next empty cell for the next query result
-           Set queryRange = ws.Cells(lastRow + 1, 1)
-           ' Increment the counter for the next page
-           i = i + 1
-       Loop Until stopTextFound
-       ' After the loop completes, clean up the sheet (remove unwanted rows)
-       ws.Range("A1:A" & lastRow).SpecialCells(xlCellTypeBlanks).EntireRow.Delete
-       ws.Range("B:B").EntireColumn.Insert Shift:=xlToRight
-       ws.Range("B1").Value = "Full CIK"
-       ws.Range("A1").Font.Bold = True
-       ws.Range("B2:B" & lastRow).FormulaR1C1 = "=CONCAT(""CIK"",REPT(0,10-LEN(RC[-1])),RC[-1])"
-       ' Define the range where data was inserted
-       Set dataRange = ws.Range("A2:D" & lastRow)
-       ' Loop through each cell in the range to check for "CIK" and delete the corresponding row
-       For Each cell In dataRange
-           If cell.Value = "CIK" Or cell.Value = "CIK0000000000" Or cell.Value = "U.S. Securities & Exchange Commission" Or cell.Value = "Home | Search the Next-Generation EDGAR System | Previous Page" Then
-               cell.EntireRow.Delete
-           End If
-       Next cell
-       ' Clear the reference to the sheet
-       Set ws = Nothing
-   Next alphabet
-   ' Close the UserForm when done
-   Unload frmProgress
-   MsgBox "Data import complete for all alphabets!"
-End Sub
+import numpy as np
+from hmmlearn import hmm
+import warnings
+warnings.filterwarnings("ignore")
 
+from IPython.display import clear_output
+
+import pandas as pd
+import yfinance as yf
+from ta.momentum import RSIIndicator, StochasticOscillator
+import matplotlib.pyplot as plt
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+
+def is_stable(hidden_states, min_duration=3):
+    """
+    Check if hidden states have stable bullish/bearish periods
+    with a minimum duration of `min_duration`.
+    """
+    count = 1
+    for i in range(1, len(hidden_states)):
+        if hidden_states[i] == hidden_states[i - 1]:
+            count += 1
+        else:
+            if count < min_duration:
+                return False  # Instability detected
+            count = 1
+    return True
+
+def has_distinct_periods(mapped_states, min_duration=5):
+    """
+    Check if there are distinct periods of bullish and bearish states.
+    """
+    bullish_count = 0
+    bearish_count = 0
+    current_state = mapped_states[0]
+    period_length = 0
+
+    for state in mapped_states:
+        if state == current_state:
+            period_length += 1
+        else:
+            if current_state == 1 and period_length >= min_duration:
+                bullish_count += 1
+            elif current_state == 0 and period_length >= min_duration:
+                bearish_count += 1
+            current_state = state
+            period_length = 1
+
+    # Count the last segment
+    if current_state == 1 and period_length >= min_duration:
+        bullish_count += 1
+    elif current_state == 0 and period_length >= min_duration:
+        bearish_count += 1
+
+    return bullish_count > 0 and bearish_count > 0
+
+def calculate_similarity(state1, state2):
+    """
+    Calculate similarity between two state sequences.
+    The sequences can be of different lengths.
+    """
+    min_len = min(len(state1), len(state2))
+    state1 = state1[-min_len:]  # Take the last `min_len` elements
+    state2 = state2[-min_len:]  # Align lengths by taking the last `min_len` elements
+
+    if np.std(state1) > 0 and np.std(state2) > 0:
+        correlation = np.corrcoef(state1, state2)[0, 1]
+    else:
+        correlation = 0  # Default to 0 correlation if one sequence has no variance
+
+    return correlation
+
+global predicted_states
+predicted_states = []
+global first_mapped
+def figure_hidden_states(data_, covar_type, initial_window=252, similarity_threshold=0.8):
+    # Add technical indicators
+    len_data = data_.copy()
+    len_data['RSI'] = RSIIndicator(len_data['Adj Close']).rsi()
+    len_data['Stochastic'] = StochasticOscillator(len_data['High'], len_data['Low'], len_data['Adj Close']).stoch()
+    
+    # Drop NaN values
+    display(len_data.isna().sum().sum())
+    len_data.dropna(inplace=True)
+    
+    # Prepare a list to store rolling predictions
+    j = 0
+    MAX_ATTEMPTS = 100
+    for i in range(initial_window+(len(data_)-len(len_data)), len(data_)+1):
+
+        max_reached = 0
+        # Expanding rolling window
+        rolling_data = data_.iloc[:i]  # Use data from the start to the current point
+        rolling_data['RSI'] = RSIIndicator(data_['Adj Close']).rsi()
+        rolling_data['Stochastic'] = StochasticOscillator(data_['High'], data_['Low'], data_['Adj Close']).stoch()
+        
+        # Drop NaN values
+        # display(rolling_data.isna().sum().sum())
+        rolling_data.dropna(inplace=True)
+        observations = rolling_data[['RSI', 'Stochastic']].values
+        
+        stable = False
+        valid_periods = False
+        similarity_passed = False
+
+        attempt_counter = 0
+        br = 0
+        while not (stable and valid_periods and similarity_passed):
+            # Train the HMM
+            model = hmm.GaussianHMM(n_components=2, covariance_type=covar_type, n_iter=1000)
+            model.fit(observations)
+            
+            # Predict the hidden state for the entire rolling window
+            rolling_hidden_states = model.predict(observations)
+
+            # Calculate additional metrics for each state
+            rolling_data['State'] = rolling_hidden_states
+            state_metrics = rolling_data.groupby('State').agg(
+                mean_price=('Adj Close', 'mean'),
+                cumulative_return=('Adj Close', lambda x: (x.iloc[-1] - x.iloc[0]) / x.iloc[0]),
+                volatility=('Adj Close', 'std')
+            )
+            
+            # Determine bullish and bearish states
+            bullish_state = state_metrics['mean_price'].idxmax()
+            bearish_state = state_metrics['mean_price'].idxmin()
+            if state_metrics.loc[bullish_state, 'cumulative_return'] < state_metrics.loc[bearish_state, 'cumulative_return']:
+                bullish_state, bearish_state = bearish_state, bullish_state
+            
+            # Map states
+            state_mapping = {bearish_state: 0, bullish_state: 1}
+            mapped_states = np.array([state_mapping[s] for s in rolling_hidden_states])
+
+
+            if max_reached == 1:
+                mapped_states = 1 - mapped_states
+
+            
+            # Check stability
+            stable = is_stable(mapped_states, min_duration=3)
+            stable = True
+            
+            # Check distinct bullish and bearish periods
+            valid_periods = has_distinct_periods(mapped_states, min_duration=5)
+
+            # Check similarity with past states
+            if len(predicted_states) > 0:
+                similarity = calculate_similarity(previous_mapped, mapped_states)
+                similarity_passed = similarity >= similarity_threshold
+            else:
+                similarity_passed = True  # First iteration passes similarity check by default
+
+            if max_reached == 2:
+                valid_periods = True
+                similarity_passed = True
+
+            global first_mapped
+            if j == 0:
+                first_mapped = list(mapped_states)
+
+            # Increment attempt counter and break if max attempts reached
+            attempt_counter += 1
+
+
+            if attempt_counter >= MAX_ATTEMPTS:
+                    max_reached = 1 + max_reached
+                    # print(f"Maximum attempts ({MAX_ATTEMPTS}) reached. Proceeding with current state.")
+                    # print (mapped_states)
+                    # print (stable, valid_periods, similarity_passed, similarity)
+                    max_reached = 2
+        
+        previous_mapped = mapped_states  
+
+        # Append the last state to predictions
+
+        if j==0:
+            predicted_states_len = 0
+        else:
+            predicted_states.append(mapped_states[-1])
+            predicted_states_len = len(predicted_states)
+
+        j = j+1
+
+            
+        # # Align predicted states with the data index
+        total_length = len(len_data)  # Total rows in the dataset
+        # mapped_length = len(mapped_states[:initial_window]) + predicted_states_len
+        mapped_length = len(first_mapped) + predicted_states_len
+        global padding_length
+        padding_length = (total_length - mapped_length) 
+        # display (mapped_length)
+        # display (len(first_mapped),len(predicted_states),(padding_length))
+
+        # data_['Mapped_State'] = [np.nan] * (initial_window - 1) + predicted_states + [np.nan] * padding_length
+        # data_['Mapped_State'] = (list(mapped_states) + [np.nan] * (len(data_) - len(mapped_states)))
+        len_data['Mapped_State'] = first_mapped + predicted_states + [np.nan] * padding_length 
+
+        clear_output(wait=True)
+
+        # Plot the rolling hidden states
+        plt.figure(figsize=(15, 2))
+        plt.plot(len_data['Adj Close'], label='Close Price')
+        bullish = len_data[len_data['Mapped_State'] == 1]
+        bearish = len_data[len_data['Mapped_State'] == 0]
+        plt.scatter(bullish.index, bullish['Adj Close'], color='green', label='Bullish State', marker='^', s=50)
+        plt.scatter(bearish.index, bearish['Adj Close'], color='red', label='Bearish State', marker='v', s=50)
+        plt.title('Stock Price with Stable Hidden States')
+        plt.xlabel('Date')
+        plt.ylabel('Price')
+        plt.legend()
+        plt.show()
+
+        # Create separate columns for current and combined mapped states
+        # data_['Mapped_State_Current'] = list(mapped_states) + [np.nan] * (len(data_) - len(mapped_states))
+        # data_['Mapped_State_Combined'] = first_mapped + predicted_states + [np.nan] * padding_length
+        
+        
+        # # Create a single figure with two subplots
+        # fig, ax = plt.subplots(2, 1, figsize=(15, 6))
+        
+        # # Subplot 1: Current Rolling Hidden States
+        # ax[0].plot(data_['Adj Close'], label='Close Price', color='blue')
+        # bullish_current = data_[data_['Mapped_State_Current'] == 1]
+        # bearish_current = data_[data_['Mapped_State_Current'] == 0]
+        # ax[0].scatter(bullish_current.index, bullish_current['Adj Close'], color='green', label='Current Bullish State', marker='^', s=50)
+        # ax[0].scatter(bearish_current.index, bearish_current['Adj Close'], color='red', label='Current Bearish State', marker='v', s=50)
+        # ax[0].set_title('Stock Price with Current Rolling Hidden States')
+        # ax[0].set_xlabel('Date')
+        # ax[0].set_ylabel('Price')
+        # ax[0].legend()
+        
+        # # Subplot 2: Combined Hidden States
+        # ax[1].plot(data_['Adj Close'], label='Close Price', color='blue')
+        # bullish_combined = data_[data_['Mapped_State_Combined'] == 1]
+        # bearish_combined = data_[data_['Mapped_State_Combined'] == 0]
+        # ax[1].scatter(bullish_combined.index, bullish_combined['Adj Close'], color='green', label='Combined Bullish State', marker='^', s=50)
+        # ax[1].scatter(bearish_combined.index, bearish_combined['Adj Close'], color='red', label='Combined Bearish State', marker='v', s=50)
+        # ax[1].set_title('Stock Price with Combined Hidden States')
+        # ax[1].set_xlabel('Date')
+        # ax[1].set_ylabel('Price')
+        # ax[1].legend()
+        
+        # Adjust layout and display the plot
+        # plt.tight_layout()
+        # plt.show()
+        
+    return len_data
+
+# Download data
+ticker = 'NIFTYIETF'
+# ticker = 'NVDA'
+data_ = download(ticker, start='2023-10-01', end='2025-01-12')
+
+# # Generate hidden states using rolling prediction
+data_ = figure_hidden_states(data_, covar_type='full', initial_window=252, similarity_threshold=0.5)
+
+# Final plot
+plt.figure(figsize=(15, 2))
+plt.plot(data_['Adj Close'], label='Close Price')
+plt.scatter(data_.index, data_['Adj Close'], c=data_['Mapped_State'], cmap='viridis', label='Rolling Hidden State')
+plt.title('Stock Price with Stable Hidden States')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.legend()
+plt.show()
